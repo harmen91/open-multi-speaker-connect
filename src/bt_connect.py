@@ -92,7 +92,7 @@ def remove_devices():
 def trust_and_pair_device(mac):
     max_attempts = 10
     delay = 2
-    bt_scan_on()
+    # bt_scan_on()
 
     for attempt in range(max_attempts):
         print(f"{mac} Attempt {attempt + 1}/{max_attempts}")    
@@ -114,8 +114,8 @@ def trust_and_pair_device(mac):
         return True
     
     print(f"Retrying for {mac}")
-    bt_scan_stop_all()
-    bt_off_on()
+    # bt_scan_stop_all()
+    # bt_off_on()
     return trust_and_pair_device(mac)
 
 

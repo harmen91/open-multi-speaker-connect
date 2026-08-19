@@ -23,7 +23,7 @@ def main():
     # CHECK IF OUT_PUT_DEVICES ARE CONNECTED
     if not check_if_connected(verbose=False)[0]:
         connect_all_devices()
-        bt_scan_stop_all()
+        # bt_scan_stop_all()
     
 
     # COMBINE CONNECTED SPEAKERS INTO ONE AUDIO OUTPUT
