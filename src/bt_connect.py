@@ -91,8 +91,8 @@ def remove_devices():
 ## NEEDS IMPROVEMENT ERROR HANDLING, MAX RECURSION DEPTH ETC
 ## ALSO TURNS BLUETOOTH POWER AND BLUETOOTH SCAN ON AND OFF DURING EVERY ATTEMPT
 def trust_and_pair_device(mac):
-    max_attempts = 10
-    delay = 2
+    max_attempts = 25
+    delay = 0.5
     bt_scan_on()
 
     for attempt in range(max_attempts):
