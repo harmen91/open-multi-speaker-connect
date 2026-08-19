@@ -2,6 +2,7 @@
 import os
 import subprocess
 import time
+import select
 from load_env import env
 
 # BLUETOOTH HARDWARE MAC FOR AUDIO OUTPUT (SPEAKER DEVICES)
