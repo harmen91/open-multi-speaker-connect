@@ -30,7 +30,6 @@ def setup_controller(controller: str):
     out = bt(f"select {controller}\npower on\nagent on\ndefault-agent\npairable on")
     # print(out)
     time.sleep(1)
-    return out
 
 # RUNNING SCAN PROCESS IN THE BACKGROUND FOR 60 SECONDS, PROCESS NEEDS TO STAY OPEN FOR SCANNING TO BE ALIVE
 scan_process = None
@@ -91,20 +90,23 @@ def remove_devices():
 ## NEEDS IMPROVEMENT ERROR HANDLING, MAX RECURSION DEPTH ETC
 ## ALSO TURNS BLUETOOTH POWER AND BLUETOOTH SCAN ON AND OFF DURING EVERY ATTEMPT
 def trust_and_pair_device(mac):
-    max_attempts = 25
-    delay = 0.5
+    max_attempts = 10
+    delay = 2
     bt_scan_on()
 
     for attempt in range(max_attempts):
-        print(f"{mac} Attempting to pair..{attempt + 1}/{max_attempts}")    
+        print(f"{mac} Attempt {attempt + 1}/{max_attempts}")    
 
         trusted = mac in bt("devices Trusted")
         paired = mac in bt("devices Paired")
-        if not trusted or not paired:
-            # print(f"{mac} Trusting..")
+        if not trusted and not paired:
+            print(f"{mac} Trusting..")
             bt(f"trust {mac}\n")
             time.sleep(delay)
-            # print(f"{mac} Pairing..")
+            continue
+
+        if trusted and not paired:
+            print(f"{mac} Pairing..")
             bt(f"pair {mac}\n")
             time.sleep(delay)
             continue
