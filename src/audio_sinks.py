@@ -4,6 +4,16 @@ import subprocess
 import time
 from bt_connect import check_if_connected
 
+# FUNC TO CLEANUP NULL, LOOPBACK AND COMBINE SINKS
+def cleanup_modules():
+    commands = [
+        "pactl list short modules | grep module-null-sink | awk '{print $1}' | xargs -r -n1 pactl unload-module",
+        "pactl list short modules | grep module-loopback | awk '{print $1}' | xargs -r -n1 pactl unload-module",
+        "pactl list short modules | grep module-combine-sink | awk '{print $1}' | xargs -r -n1 pactl unload-module",
+    ]
+    for cmd in commands:
+        subprocess.run(cmd, shell=True)  
+
 # FUNCTION TO INTERACT WITH pactl
 def pactl(args: str) -> str:
     proc = subprocess.run(
@@ -41,16 +51,25 @@ class BluetoothSpeaker:
         self.loopback_module_id = None
         self.null_sink_name = None
         self.null_sink_module_id = None
-        self.create_null_sink()
+        self.loopback_sink_name = None
+        self.loopback_sink_module_id = None
     
     def create_null_sink(self):
         self.null_sink_name = self.name + "_null_delayed"
         self.null_sink_module_id = pactl(f"load-module module-null-sink sink_name={self.null_sink_name}")
 
+    def create_loopback(self):
+        self.loopback_name = self.name + "_loopback"
+        self.loopback_module_id = pactl(f"load-module module-loopback source={self.null_sink_name}.monitor sink={self.name} latency_msec={self.latency_ms}")
+    
+    def get_null_sink_name(self):
+        return self.null_sink_name 
+    
+
     def __repr__(self):
         return f"BluetoothSpeaker(name={self.name!r}, mac={self.mac!r}, sink_id={self.sink_id!r}, null_sink_name={self.null_sink_name}, null_sink_module_id={self.null_sink_module_id})"
 
-# BUILD LIST OF BLUETOOTH SPEAKER OBJECTS FROM EACH CONNECTED DEVICE IN dict_mac_to_sink() dict
+# FUNC TO BUILD LIST OF BLUETOOTH SPEAKER OBJECTS FROM EACH CONNECTED DEVICE IN DICT dict_mac_to_sink()
 def build_speakers():
     bluetooth_speakers = []
     for mac, info in dict_mac_to_sink().items():
@@ -59,51 +78,34 @@ def build_speakers():
         bluetooth_speakers.append(BluetoothSpeaker(mac=mac, name=device_name, sink_id=sink_id)) 
     return bluetooth_speakers
 
-speakers = build_speakers()
-print(speakers)
+# FUNC TO COMBINE ALL CONNECTED BLUETOOTH SPEAKERS INTO ONE AUDIO OUTPUT
+def combine_speakers():
+    # BUILD LIST OF SPEAKER OBJECTS
+    speakers = build_speakers()
+
+    # CALL CREATE_NULL_SINK METHOD ON EACH SPEAKER OBJECT, ADD SMALL DELAY
+    for speaker in speakers:
+        speaker.create_null_sink()
+        time.sleep(0.5)
+
+    # CALL CREATE_COMBINE_SINK METHOD ON EACH SPEAKER OBJECT, ADD SMALL DELAY
+    for speaker in speakers:
+        speaker.create_loopback()
+        time.sleep(0.5)
+
+    null_sink_names = []
+    for speaker in speakers:
+        null_sink_names.append(speaker.get_null_sink_name())
+
+    null_sink_names_str = ",".join(null_sink_names)
+    pactl(f"load-module module-combine-sink sink_name=combined_speakers slaves={null_sink_names_str}")
+    time.sleep(0.5)
+    pactl("set-default-sink combined_speakers")
 
 
-
-
-
-
-## IDEAS 
-# apply object oriented programming
-# have a parent speaker object class
-# and child speaker classes
-
-# every child is a device from connected_devices_list
-# cross reference the output of the command 'pactl list short sinks' with device
-# check if the device is a bluetooth device the bluez_output line (maybe change : for _ in some cases)
-# 
-# each child should create a null sink to act as the delayed jack input (name it device_null_delayed) 
-    # pactl load-module module-nul-sink sink_name={speakername}_..etc 
-
-
-#  
-# implement methods for : pactl unload-module, pactl load-module, change latency
-
-#build the combined sink of all individual null_delayed_sinks as the main output device
-
-
-
-# FOR INSTANCE >>>
-
-
-# # 1. Create a null sink to act as the delayed jack input
-# pactl load-module module-null-sink sink_name=jack_delayed sink_properties=device.description="Jack_Delayed"
-
-# # 2. Loop that null sink into the real jack output, with added latency
-# pactl load-module module-loopback \
-#   source=jack_delayed.monitor \
-#   sink=alsa_output.platform-fe00b840.mailbox.stereo-fallback \
-#   latency_msec=150
-
-# # 3. Now build the combine sink using jack_delayed instead of the real jack sink
-# pactl load-module module-combine-sink \
-#   sink_name=combined_speakers \
-#   slaves=bluez_output.52_58_0D_19_0A_4B.1,bluez_output.63_5E_53_8E_2B_06.1,bluez_output.04:52:C7:A9:52:B8,bluez_output.E4:58:BC:6E:EC:08,jack_delayed
-
+# TO DO
+# Implement latency adjustment method
+# ADD FL, FR, RL, RR, CENTER to ENV.. map them to the object.. use it later to manually adjust latency
 
 # # CHANGE DELAY 
 
@@ -116,8 +118,6 @@ print(speakers)
 #   source=jack_delayed.monitor \
 #   sink=alsa_output.platform-fe00b840.mailbox.stereo-fallback \
 #   latency_msec=180
-
-
 
 # # Initial calibration ideas
 
