@@ -8,20 +8,22 @@ def main():
     # time.sleep(2)
 
 
-    # # initial setup
+    # # INITIAL BLUETOOTH CONTROLLER SETUP
     setup_controller(CONTROLLER_OUTPUT)
 
-    # check if speakers are trusted & paired
+    # CHECK IF OUTPUT_DEVICES ARE TRUSTED AND PAIRED
     if not check_if_paired(verbose=False):
         pair_all_devices()
 
-    # check if speakers are connected
+    # CHECK IF OUT_PUT_DEVICES ARE CONNECTED
     if not check_if_connected(verbose=False)[0]:
         connect_all_devices()
         bt_scan_stop_all()
     
     if check_if_connected()[0]:
         print("All devices are connected")
+    else:
+        print("Bluetooth initialization failed")
     
 
 main()

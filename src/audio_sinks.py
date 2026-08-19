@@ -4,7 +4,6 @@ import subprocess
 import time
 from bt_connect import check_if_connected
 
-
 # FUNCTION TO INTERACT WITH pactl
 def pactl(args: str) -> str:
     proc = subprocess.run(
@@ -12,28 +11,56 @@ def pactl(args: str) -> str:
     )
     return proc.stdout + proc.stderr
 
-all_connected, connected_devices_list = check_if_connected() #UNPACKING TUPLE = BOOL, LIST OF [MAC]'s
+# CREATE DICTIONAIRY THAT MAPS BLUETOOTHCTL CONFIRMED CONNECTED DEVICES TO PACTL LIST SHORT SINKS
+def dict_mac_to_sink():
+    all_connected, connected_devices_list = check_if_connected(verbose=False) #UNPACKING TUPLE = BOOL, LIST OF [MAC]'s
+    if not all_connected:
+        print("Not all speakers connected yet, skipping sink creation")
+    else:
+        out = pactl("list short sinks")
+        device_to_sink = {}
+        for device in connected_devices_list:
+            device_upper = device.upper()
+            device_underscored = device_upper.replace(":", "_")
+            for line in out.splitlines():
+                line_upper = line.upper()
+                if device_upper in line_upper or device_underscored in line_upper:
+                    fields = line.split()
+                    device_to_sink[device] = {"id": fields[0], "name": fields[1]}
+                    break
 
-if not all_connected:
-    print("Not all speakers connected yet, skipping sink creation")
-else:
-    out = pactl("list short sinks")
-    device_to_sink = {}
-    for device in connected_devices_list:
-        device_upper = device.upper()
-        device_underscored = device_upper.replace(":", "_")
-        for line in out.splitlines():
-            line_upper = line.upper()
-            if device_upper in line_upper or device_underscored in line_upper:
-                fields = line.split()
-                device_to_sink[device] = {"id": fields[0], "name": fields[1]}
-                break
+        return device_to_sink # DICTIONARY = {'MAC':{'SINK ID':'NAME'}}
 
-    print(device_to_sink) # DICTIONARY = {'MAC':{'SINK ID':'NAME'}}
+# BLUETOOTH SPEAKER CLASS
+class BluetoothSpeaker:
+    def __init__(self, mac, name, sink_id, default_latency_ms=0):
+        self.mac = mac
+        self.name = name
+        self.sink_id = sink_id
+        self.latency_ms = default_latency_ms
+        self.loopback_module_id = None
+        self.null_sink_name = None
+        self.null_sink_module_id = None
+        self.create_null_sink()
+    
+    def create_null_sink(self):
+        self.null_sink_name = self.name + "_null_delayed"
+        self.null_sink_module_id = pactl(f"load-module module-null-sink sink_name={self.null_sink_name}")
 
+    def __repr__(self):
+        return f"BluetoothSpeaker(name={self.name!r}, mac={self.mac!r}, sink_id={self.sink_id!r}, null_sink_name={self.null_sink_name}, null_sink_module_id={self.null_sink_module_id})"
 
+# BUILD LIST OF BLUETOOTH SPEAKER OBJECTS FROM EACH CONNECTED DEVICE IN dict_mac_to_sink() dict
+def build_speakers():
+    bluetooth_speakers = []
+    for mac, info in dict_mac_to_sink().items():
+        sink_id = info["id"]
+        device_name = info["name"]
+        bluetooth_speakers.append(BluetoothSpeaker(mac=mac, name=device_name, sink_id=sink_id)) 
+    return bluetooth_speakers
 
-
+speakers = build_speakers()
+print(speakers)
 
 
 
