@@ -24,22 +24,18 @@ def pactl(args: str) -> str:
 # CREATE DICTIONAIRY THAT MAPS BLUETOOTHCTL CONFIRMED CONNECTED DEVICES TO PACTL LIST SHORT SINKS
 def dict_mac_to_sink():
     all_connected, connected_devices_list = check_if_connected(verbose=False) #UNPACKING TUPLE = BOOL, LIST OF [MAC]'s
-    if not all_connected:
-        print("Not all speakers connected yet, skipping sink creation")
-    else:
-        out = pactl("list short sinks")
-        device_to_sink = {}
-        for device in connected_devices_list:
-            device_upper = device.upper()
-            device_underscored = device_upper.replace(":", "_")
-            for line in out.splitlines():
-                line_upper = line.upper()
-                if device_upper in line_upper or device_underscored in line_upper:
-                    fields = line.split()
-                    device_to_sink[device] = {"id": fields[0], "name": fields[1]}
-                    break
-
-        return device_to_sink # DICTIONARY = {'MAC':{'SINK ID':'NAME'}}
+    out = pactl("list short sinks")
+    device_to_sink = {}
+    for device in connected_devices_list:
+        device_upper = device.upper()
+        device_underscored = device_upper.replace(":", "_")
+        for line in out.splitlines():
+            line_upper = line.upper()
+            if device_upper in line_upper or device_underscored in line_upper:
+                fields = line.split()
+                device_to_sink[device] = {"id": fields[0], "name": fields[1]}
+                break
+    return device_to_sink # DICTIONARY = {'MAC':{'SINK ID':'NAME'}}
 
 # BLUETOOTH SPEAKER CLASS
 class BluetoothSpeaker:
@@ -85,22 +81,32 @@ def combine_speakers():
 
     # CALL CREATE_NULL_SINK METHOD ON EACH SPEAKER OBJECT, ADD SMALL DELAY
     for speaker in speakers:
+        print(f"Creating null_sink for {speaker}")
         speaker.create_null_sink()
         time.sleep(0.5)
 
-    # CALL CREATE_COMBINE_SINK METHOD ON EACH SPEAKER OBJECT, ADD SMALL DELAY
+    # CALL CREATE_LOOPBACK METHOD ON EACH SPEAKER OBJECT, ADD SMALL DELAY
     for speaker in speakers:
+        print(f"Creating loopback for {speaker}")
         speaker.create_loopback()
         time.sleep(0.5)
 
+
+    # COMBINING ALL SPEAKERS IN ONE SINK
+    combined_sink = "combined_speakers"
+    print(f"Combining all speakers in one sink named {combined_sink}")
     null_sink_names = []
     for speaker in speakers:
         null_sink_names.append(speaker.get_null_sink_name())
-
     null_sink_names_str = ",".join(null_sink_names)
-    pactl(f"load-module module-combine-sink sink_name=combined_speakers slaves={null_sink_names_str}")
+    pactl(f"load-module module-combine-sink sink_name={combined_sink} slaves={null_sink_names_str}")
     time.sleep(0.5)
-    pactl("set-default-sink combined_speakers")
+
+    # SET COMBINED_SINK AS PACTL DEFAULT AUDIO OUTPUT
+    print(f"Setting {combined_sink} as default pactl audio output")
+    pactl(f"set-default-sink {combined_sink}")
+
+    print(f"Succes!")
 
 
 # TO DO

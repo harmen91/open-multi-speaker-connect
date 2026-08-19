@@ -20,15 +20,18 @@ def main():
     # CHECK IF OUT_PUT_DEVICES ARE CONNECTED
     if not check_if_connected(verbose=False)[0]:
         connect_all_devices()
-        bt_scan_stop_all()
+        # bt_scan_stop_all()
     
+
+    # COMBINE SPEAKERS INTO ONE AUDIO OUTPUT
     if check_if_connected()[0]:
-        print("All devices are connected")
+        print("All devices are connected, ready to combine speakers")
+        combine_speakers()  
+        
     else:
         print("Bluetooth initialization failed")
 
-    # COMBINE SPEAKERS INTO ONE AUDIO OUTPUT
-    combine_speakers()
+
     
 
 main()
