@@ -30,6 +30,7 @@ def setup_controller(controller: str):
     out = bt(f"select {controller}\npower on\nagent on\ndefault-agent\npairable on")
     # print(out)
     time.sleep(1)
+    return out
 
 # RUNNING SCAN PROCESS IN THE BACKGROUND FOR 60 SECONDS, PROCESS NEEDS TO STAY OPEN FOR SCANNING TO BE ALIVE
 scan_process = None

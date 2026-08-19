@@ -75,7 +75,8 @@ def build_speakers():
     return bluetooth_speakers
 
 # FUNC TO COMBINE ALL CONNECTED BLUETOOTH SPEAKERS INTO ONE AUDIO OUTPUT
-def combine_speakers():
+
+def combine_speakers(name_combined_sink):
     # BUILD LIST OF SPEAKER OBJECTS
     speakers = build_speakers()
 
@@ -91,22 +92,25 @@ def combine_speakers():
         speaker.create_loopback()
         time.sleep(0.5)
 
-
     # COMBINING ALL SPEAKERS IN ONE SINK
-    combined_sink = "combined_speakers"
-    print(f"Combining all speakers in one sink named {combined_sink}")
+    print(f"Combining all speakers in one sink named {name_combined_sink}")
     null_sink_names = []
     for speaker in speakers:
         null_sink_names.append(speaker.get_null_sink_name())
     null_sink_names_str = ",".join(null_sink_names)
-    pactl(f"load-module module-combine-sink sink_name={combined_sink} slaves={null_sink_names_str}")
+    pactl(f"load-module module-combine-sink sink_name={name_combined_sink} slaves={null_sink_names_str}")
     time.sleep(0.5)
 
     # SET COMBINED_SINK AS PACTL DEFAULT AUDIO OUTPUT
-    print(f"Setting {combined_sink} as default pactl audio output")
-    pactl(f"set-default-sink {combined_sink}")
+    print(f"Setting {name_combined_sink} as default pactl audio output")
+    pactl(f"set-default-sink {name_combined_sink}")
 
     print(f"Succes!")
+
+def check_if_combined(name_combined_sink):
+    if name_combined_sink in pactl("list short sinks"):
+        return True
+    return False
 
 
 # TO DO
