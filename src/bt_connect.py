@@ -116,7 +116,7 @@ def trust_and_pair_device(mac):
     
     print(f"Retrying for {mac}")
     bt_scan_stop()
-    bt_off_on()
+    # bt_off_on()
     return trust_and_pair_device(mac)
 
 
