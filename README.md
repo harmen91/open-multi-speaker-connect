@@ -49,12 +49,12 @@ Create a `.env` file in the project root with the following layout:
     CONTROLLER_INPUT=AA:BB:CC:DD:EE:FF
 
     # Speakers
-    DIY_SPEAKER_1=AA:BB:CC:DD:EE:FF
-    DIY_SPEAKER_2=AA:BB:CC:DD:EE:FF
-    BOSE_SOUNDLINK=AA:BB:CC:DD:EE:FF
+    OUTPUT_DEVICE_DIY_SPEAKER_1=AA:BB:CC:DD:EE:FF
+    OUTPUT_DEVICE_DIY_SPEAKER_2=AA:BB:CC:DD:EE:FF
+    OUTPUT_DEVICE_BOSE_SOUNDLINK=AA:BB:CC:DD:EE:FF
 
     # Phone (used as audio input source)
-    PHONE_IPHONE=AA:BB:CC:DD:EE:FF
+    INPUT_DEVICE_PHONE_IPHONE=AA:BB:CC:DD:EE:FF
 
 Add or remove entries to match your own hardware. Unused lines can be
 commented out with `#` rather than deleted, which is useful when
@@ -62,6 +62,8 @@ switching between different machines or hardware setups.
 
 There is currently no automated device discovery — all MAC addresses
 must be identified and entered manually before running the tool.
+
+Use the exact string formatting: OUTPUT_DEVICE_..=MAC and INPUT_DEVICE_..=MAC
 
 ## Status
 
