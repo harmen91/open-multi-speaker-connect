@@ -100,7 +100,7 @@ def trust_and_pair_device(mac):
 
         trusted = mac in bt("devices Trusted")
         paired = mac in bt("devices Paired")
-        if not trusted or paired:
+        if not trusted and not paired:
             # print(f"{mac} Trusting..")
             bt(f"trust {mac}\n")
             time.sleep(delay)
