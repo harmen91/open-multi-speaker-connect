@@ -96,18 +96,15 @@ def trust_and_pair_device(mac):
     bt_scan_on()
 
     for attempt in range(max_attempts):
-        print(f"{mac} Attempt {attempt + 1}/{max_attempts}")    
+        print(f"{mac} Attempting to pair..{attempt + 1}/{max_attempts}")    
 
         trusted = mac in bt("devices Trusted")
-        if not trusted:
-            print(f"{mac} Trusting..")
+        paired = mac in bt("devices Paired")
+        if not trusted or paired:
+            # print(f"{mac} Trusting..")
             bt(f"trust {mac}\n")
             time.sleep(delay)
-            continue
-
-        paired = mac in bt("devices Paired")
-        if not paired:
-            print(f"{mac} Pairing..")
+            # print(f"{mac} Pairing..")
             bt(f"pair {mac}\n")
             time.sleep(delay)
             continue
@@ -116,7 +113,7 @@ def trust_and_pair_device(mac):
     
     print(f"Retrying for {mac}")
     bt_scan_stop()
-    # bt_off_on()
+    bt_off_on()
     return trust_and_pair_device(mac)
 
 
