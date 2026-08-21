@@ -47,6 +47,7 @@ def bt_bluetoothctl(args, timeout=5):
         print(f"Process times out.\n{exc}")
         return exc    
 
+# SELECT DEFAULT BLUETOOTH CONTROLLER
 def bt_select_default_controller(controller):
     script=f"select {controller}\nagent on\ndefault-agent"
     proc = subprocess.run(
@@ -69,12 +70,9 @@ def bt_background_scan_on():
 
     def read_output():
         for line in scan_process.stdout:
-            line = line.rstrip()
-            
-            print(line)
+            line = line.rstrip()       
+            print(line) # >>>>>>>>> DISABLE THIS IN THE FUTURE <<<<<<<<<<<<
             scan_lines.append(line)
-
-    
     threading.Thread(target=read_output, daemon=True).start()
 
     return scan_process
@@ -82,11 +80,17 @@ def bt_background_scan_on():
 # TERMINATE ALL LINGERING BLUETOOTHCTL --timeout PROCESSES // USE TO STOP BACKGROUND SCAN PROCESS
 def bt_scan_stop_all():
     subprocess.run(["pkill", "-f", "bluetoothctl --timeout"])
-    print("Terminated any lingering bluetoothctl scan processes")
+    print("Terminated any lingering bluetoothctl background scan processes")
 
 # REMOVE DEVICE
 def bt_remove_device(mac, timeout=5):
     bt_bluetoothctl(f"remove {mac}", timeout)
+
+# REMOVE ALL TRUSTED, PAIRED and CONNECTED BLUETOOTH DEVICES
+def bt_remove_devices():
+    for mac in OUTPUT_DEVICES:
+        bt_bluetoothctl((f"remove {mac}"))
+
 
 # CHECK IF SINGLE DEVICE IS TRUSTED
 def check_if_trusted(mac, verbose = False):
@@ -127,6 +131,18 @@ def check_if_connected(mac, verbose = False):
         return False
     return True
 
+# CHECK IF ALL DEVICES ARE TRUSTED
+def check_if_all_trusted():
+    timeout = 10
+    trusted = bt_bluetoothctl("devices Trusted", timeout).stdout    
+    for mac in OUTPUT_DEVICES:
+        if mac in trusted:
+            continue
+        else:
+            return False
+    return True
+
+
 # CHECK IF ALL DEVICES ARE CONNECTED, RETURN LIST OF CONNECTED DEVICES FROM BLUETOOTHCTL DEVICES CONNECTED OUTPUT
 def check_if_all_connected(verbose = True) -> (bool, list):
     timeout = 10
@@ -164,7 +180,8 @@ def trust_and_pair_devices(OUTPUT_DEVICES):
             max_trusting_attempts = 0
             while not trusted and max_trusting_attempts < 10:
                 
-                # WHILE MAC DID NOT APPEAR YET WAIT 1 SECOND, RIGHT NOW INFINITE LOOP !!
+                # WHILE MAC DID NOT APPEAR YET WAIT 1 SECOND, RIGHT NOW INFINITE LOOP !! 
+                ## Idea??>> DO SOMETHING WITH POWER OFF ON OR TOGGLE SCAN ON ??? >> CHECK SCAN LINE FOR "[CHG] Controller C4:3D:1A:00:BE:68 Discovering: no"
                 while not any(mac in line for line in scan_lines):
                     print(f"Waiting for {mac} to appear in scan_lines")
                     time.sleep(1)
@@ -173,6 +190,7 @@ def trust_and_pair_devices(OUTPUT_DEVICES):
                 max_trusting_attempts += 1
                 print(f"Attempting to trust with {mac}. Trusting attempt: {max_trusting_attempts}")
                 trust_device(mac)
+                time.sleep(1)
                 trusted  = check_if_trusted(mac)
             
             # BROKE OUT OF NOT TRUSTED WHILE LOOP > ATTEMPTING TO PAIR
@@ -182,40 +200,82 @@ def trust_and_pair_devices(OUTPUT_DEVICES):
             paired = check_if_paired(mac)
             
 
+# CONNECT INDIVIDUAL DEVICE
 def connect_device(mac):
     bt_bluetoothctl(f"connect {mac}", timeout=10)
 
+# CONNECT ALL DEVICES
+def connect_devices(OUTPUT_DEVICES):
+    all_trusted = check_if_all_trusted()
+    all_connected = check_if_all_connected()[0]
+
+    # CHECK IF ALL CONNECTED
+    if not all_connected:
+        print(f"Not all devices are connected, checking if Trusted.")
+        # CHECK IF ALL TRUSTED
+        if all_trusted:
+            print(f"All devices are trusted, attempting to connect all devices.")
+
+            # ALL TRUSTED AND READY TO CONNECT EACH DEVICE
+            for mac in OUTPUT_DEVICES:
+                trusted = check_if_trusted(mac)
+                connected = check_if_connected(mac)
+                # ATTEMPT TO CONNECT TO DEVICE FOR MAX CONNECTING_ATTEMPTS
+                connecting_attempts = 0
+                while trusted and not connected and connecting_attempts < 10:
+                    time.sleep(1)
+                    connecting_attempts += 1
+                    print(f"Attempting to connect with {mac}. Connecting attempt: {connecting_attempts}")
+                    connect_device(mac)
+                    connected = check_if_connected(mac)
 
 
-                
+#########################################
+######### FINAL FUNCTION CALL ###########
+#########################################
+
+def bluetooth_connect_speakers(CONTROLLER_OUTPUT, OUTPUT_DEVICES):
+
+
+    print("#####################  TURNING ON BLUETOOTH #######################")
+    bt_bluetoothctl("power on")
+    time.sleep(3)
+
+    print(f"#####################  SET DEFAULT OUTPUT CONTROLLER TO {CONTROLLER_OUTPUT} #######################")
+    bt_select_default_controller(CONTROLLER_OUTPUT) ## improve test against bluetoothctl list to check if agent is already [default]
+    time.sleep(1)
+
+    print("#####################  START BLUETOOTHCTL SCAN BACKGROUND SERVICE #######################")
+    print("#####################  CAPTURING ALL INCOMING BLUETOOTH MESSAGES #######################")
+    bt_background_scan_on() 
+    time.sleep(3)
+
+    print("#####################  TRUST AND PAIR DEVICES #######################")
+    trust_and_pair_devices(OUTPUT_DEVICES)
+    time.sleep(1)
+
+    print("#####################  RESTART BLUETOOTH CONTROLLER #######################")
+    bt_bluetoothctl("scan off")
+    time.sleep(1)
+    bt_bluetoothctl("power off")
+    time.sleep(1)
+    bt_bluetoothctl("power on")
+    time.sleep(3)
+
+    print("#####################  CONNECT ALL DEVICES #######################")
+    connect_devices(OUTPUT_DEVICES)
+
+    print("#####################  TERMINATE ALL LINGERING BACKGROUND SCAN SERVICES #######################")    
+    bt_scan_stop_all()
 
 
 
 
 
+################################
+######### TEST STACK ###########
+################################
 
+if __name__ == "__main__":
 
-
-
-## STACK
-
-
-
-bt_bluetoothctl("power on")
-bt_bluetoothctl("agent on")
-time.sleep(2)
-bt_select_default_controller(CONTROLLER_OUTPUT) ## improve test against bluetoothctl list to check if agent is already [default]
-bt_bluetoothctl("agent on") ## can remove later after controller check
-
-bt_background_scan_on() #Start background scan for --timeout set in function
-
-
-print("#####################  DEBUG LINE 1 #######################")
-trust_and_pair_devices(OUTPUT_DEVICES)
-print("#####################  DEBUG LINE 2 #######################")
-
-
-print("#####################  DEBUG LINE 3 #######################")
-
-
-bt_scan_stop_all() ## RFKILL LINGERING BACKGROUND SERVICES // 
+    bluetooth_connect_speakers(CONTROLLER_OUTPUT, OUTPUT_DEVICES)

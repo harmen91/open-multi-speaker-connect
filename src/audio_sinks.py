@@ -2,7 +2,7 @@
 import os
 import subprocess
 import time
-from bt_connect import check_if_connected
+from bt_connect_v3 import check_if_all_connected
 
 # FUNC TO CLEANUP NULL, LOOPBACK AND COMBINE SINKS
 def cleanup_modules():
@@ -23,7 +23,7 @@ def pactl(args: str) -> str:
 
 # CREATE DICTIONAIRY THAT MAPS BLUETOOTHCTL CONFIRMED CONNECTED DEVICES TO PACTL LIST SHORT SINKS
 def dict_mac_to_sink():
-    all_connected, connected_devices_list = check_if_connected(verbose=False) #UNPACKING TUPLE = BOOL, LIST OF [MAC]'s
+    all_connected, connected_devices_list = check_if_all_connected(verbose=False) #UNPACKING TUPLE = BOOL, LIST OF [MAC]'s
     out = pactl("list short sinks")
     device_to_sink = {}
     for device in connected_devices_list:
