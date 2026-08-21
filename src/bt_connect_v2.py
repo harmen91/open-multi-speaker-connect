@@ -86,9 +86,19 @@ def check_if_paired(mac, verbose = True):
         return False
     return True
 
+def check_if_connected(mac, verbose = True):
+    timeout = 10
+    connected = mac in bluetoothctl("devices Connected", timeout).stdout
+    if connected:
+        if verbose:
+            print(f"{mac} connected")
+    else:
+        if verbose:
+            print(f"{mac} disconnected")
+        return False
+    return True
 
-
-def check_if_connected(verbose=False) -> (bool, list):
+def check_if_all_connected(verbose = True) -> (bool, list):
     timeout = 10
     connected = bluetoothctl("devices Connected", timeout).stdout
     list_connected = []
@@ -111,7 +121,7 @@ def trust_pair_connect_all_devices():
     timeout = 15
     
     for mac in OUTPUT_DEVICES:
-        if mac not in check_if_connected()[1]:
+        if not check_if_paired(mac):
             count = 0
             max_attempts = 15
             while not any(mac in line for line in scan_lines):
@@ -131,24 +141,24 @@ def trust_pair_connect_all_devices():
                 bluetoothctl(f"{trust} {mac}", timeout)
                 bluetoothctl(f"{pair} {mac}", timeout)
 
-            if mac not in check_if_connected()[1]:
+            if not check_if_connected(mac):
                 bluetoothctl(f"{connect} {mac}", timeout)
 
 def reconnect_paired_devices(): 
     timeout = 15   
     for mac in OUTPUT_DEVICES: 
         time.sleep(1)
-        if mac not in check_if_connected()[1]:   
+        if not check_if_connected(mac):   
             bluetoothctl(f"connect {mac}", timeout)
         
 
 
 def bluetooth_connect():
-    # remove_devices() #to
+    remove_devices() #to
     bt_background_scan_on()
     trust_pair_connect_all_devices()
     reconnect_paired_devices()
     bt_scan_stop_all()
-    check_if_connected(verbose=True)
+    check_if_all_connected()
 
 bluetooth_connect()
