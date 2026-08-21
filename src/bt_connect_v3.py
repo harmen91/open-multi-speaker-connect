@@ -1,20 +1,7 @@
 import subprocess
 import threading
 import time
-from load_env import env
-
-# BLUETOOTH HARDWARE MAC FOR AUDIO OUTPUT (SPEAKER DEVICES)
-CONTROLLER_OUTPUT = env["CONTROLLER_OUTPUT"]
-# BLUETOOTH HARDWARE MAC FOR AUDIO INPUT (PHONE, COMPUTER, AUDIO STREAM, ETC)
-# USEFULL FOR HAVING TWO SEPERATE BLUETOOTH CONTROLERS HANDLE INCOMING AND OUTGOING 
-# BLUETOOTH STREAMS FOR IMPROVED PERFORMANCE AND REDUCED LATENCY
-CONTROLLER_INPUT = env["CONTROLLER_INPUT"]
-
-# STORED MAC ADDRESSES OF OUTPUT DEVICES IN ENV
-OUTPUT_DEVICES = [v for k, v in env.items() if k.startswith("OUTPUT_DEVICE")] 
-
-# STORED MAC ADDRESSES OF INPUT DEVICES IN ENV
-INPUT_DEVICES = [v for k, v in env.items() if k.startswith("INPUT_DEVICE")] 
+from load_env import CONTROLLER_INPUT, CONTROLLER_OUTPUT, INPUT_DEVICES, OUTPUT_DEVICES
 
 #SINGLE CALL TO BLUETOOTHCTL, WAIT FOR OUTPUT, OR TERMINATE AFTER FIXED TIMEROUT
 def bt_bluetoothctl(args, timeout=5):
@@ -198,6 +185,8 @@ def trust_and_pair_devices(OUTPUT_DEVICES):
             print(f"Attempting to pair with {mac}. Pairing attempt: {max_pairing_attempts}")
             pair_device(mac)
             paired = check_if_paired(mac)
+            # FIRST TIME TRYING TO CONNECT RIGHT AFTER PAIRING SUCCESFULLY - IMPROVED CONNECTIVITY ISSUES WITH BOSE SOUNDLINK MINI 
+            connect_device(mac)
             
 
 # CONNECT INDIVIDUAL DEVICE
@@ -236,38 +225,40 @@ def connect_devices(OUTPUT_DEVICES):
 
 def bluetooth_connect_speakers(CONTROLLER_OUTPUT, OUTPUT_DEVICES):
 
+    if not check_if_all_connected(OUTPUT_DEVICES)[0]:
 
-    print("#####################  TURNING ON BLUETOOTH #######################")
-    bt_bluetoothctl("power on")
-    time.sleep(3)
+        print("#####################  TURNING ON BLUETOOTH #######################")
+        bt_bluetoothctl("power on")
+        time.sleep(3)
 
-    print(f"#####################  SET DEFAULT OUTPUT CONTROLLER TO {CONTROLLER_OUTPUT} #######################")
-    bt_select_default_controller(CONTROLLER_OUTPUT) ## improve test against bluetoothctl list to check if agent is already [default]
-    time.sleep(1)
+        print(f"#####################  SET DEFAULT OUTPUT CONTROLLER TO {CONTROLLER_OUTPUT} #######################")
+        bt_select_default_controller(CONTROLLER_OUTPUT) ## improve test against bluetoothctl list to check if agent is already [default]
+        time.sleep(1)
 
-    print("#####################  START BLUETOOTHCTL SCAN BACKGROUND SERVICE #######################")
-    print("#####################  CAPTURING ALL INCOMING BLUETOOTH MESSAGES #######################")
-    bt_background_scan_on() 
-    time.sleep(3)
+        print("#####################  START BLUETOOTHCTL SCAN BACKGROUND SERVICE #######################")
+        print("#####################  CAPTURING ALL INCOMING BLUETOOTH MESSAGES #######################")
+        bt_background_scan_on() 
+        time.sleep(3)
 
-    print("#####################  TRUST AND PAIR DEVICES #######################")
-    trust_and_pair_devices(OUTPUT_DEVICES)
-    time.sleep(1)
+        print("#####################  TRUST AND PAIR DEVICES #######################")
+        trust_and_pair_devices(OUTPUT_DEVICES)
+        time.sleep(1)
 
-    print("#####################  RESTART BLUETOOTH CONTROLLER #######################")
-    bt_bluetoothctl("scan off")
-    time.sleep(1)
-    bt_bluetoothctl("power off")
-    time.sleep(1)
-    bt_bluetoothctl("power on")
-    time.sleep(3)
+        # print("#####################  RESTART BLUETOOTH CONTROLLER #######################")
+        # bt_bluetoothctl("scan off")
+        # time.sleep(1)
+        # bt_bluetoothctl("power off")
+        # time.sleep(1)
+        # bt_bluetoothctl("power on")
+        # time.sleep(3)
 
-    print("#####################  CONNECT ALL DEVICES #######################")
-    connect_devices(OUTPUT_DEVICES)
+        print("#####################  CONNECT ALL DEVICES #######################")
+        connect_devices(OUTPUT_DEVICES)
 
-    print("#####################  TERMINATE ALL LINGERING BACKGROUND SCAN SERVICES #######################")    
-    bt_scan_stop_all()
+        print("#####################  TERMINATE ALL LINGERING BACKGROUND SCAN SERVICES #######################")    
+        bt_scan_stop_all()
 
+    return check_if_all_connected(OUTPUT_DEVICES)
 
 
 
