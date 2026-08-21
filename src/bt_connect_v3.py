@@ -1,5 +1,6 @@
 import subprocess
 import threading
+import queue
 import time
 from load_env import CONTROLLER_INPUT, CONTROLLER_OUTPUT, INPUT_DEVICES, OUTPUT_DEVICES
 
@@ -270,3 +271,12 @@ def bluetooth_connect_speakers(CONTROLLER_OUTPUT, OUTPUT_DEVICES):
 if __name__ == "__main__":
 
     bluetooth_connect_speakers(CONTROLLER_OUTPUT, OUTPUT_DEVICES)
+
+
+
+
+################################
+######### TO DO ################
+################################
+
+    # - fix scan_lines >> queue.Queue() see administration md file
