@@ -107,6 +107,12 @@ def combine_speakers(name_combined_sink):
 
     print(f"Succes!")
 
+
+
+### FIX THIS TO ACTUALLY DOUBLE CHECK WITH CONNECTED BLUETOOTH DEVICES, NOT JUST SHORT SINK NAME OF COMBINED SINK
+### >>> !! <<< 
+## IF NOT COMBINED, BUT CONNECTED > SHOULD REMOVE SINK AND ALL CORRESPONDING NULLSINKS AND TRY AGAIN
+### WORK IN PROGRESS ####
 def check_if_combined(name_combined_sink):
     if name_combined_sink in pactl("list short sinks"):
         return True

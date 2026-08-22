@@ -37,7 +37,7 @@ def bt_bluetoothctl(args, timeout=5):
 
 # SELECT DEFAULT BLUETOOTH CONTROLLER
 def bt_select_default_controller(controller):
-    script=f"select {controller}\nagent on\ndefault-agent"
+    script=f"select {controller}\nagent on\ndefault-agent\n pairable on"
     proc = subprocess.run(
         ["bluetoothctl"], input=script, capture_output=True, text=True
     )
@@ -172,7 +172,7 @@ def trust_and_pair_devices(OUTPUT_DEVICES):
         max_pairing_attempts = 0
         while not paired and max_pairing_attempts < 10:
             
-            # IF MAC NOT TRUSTED > WAIT FOR MAC TO APPEAR IN SCAN_LINES > TRUST
+            # IF MAC NOT TRUSTED > WAIT FOR MAC TO APPEAR IN local_scan_lines > TRUST
             max_trusting_attempts = 0
             while not trusted and max_trusting_attempts < 10:
                 
@@ -180,12 +180,19 @@ def trust_and_pair_devices(OUTPUT_DEVICES):
                 ## Idea??>> DO SOMETHING WITH POWER OFF ON OR TOGGLE SCAN ON ??? >> CHECK SCAN LINE FOR "[CHG] Controller C4:3D:1A:00:BE:68 Discovering: no"
                 while not any(mac in line for line in local_scan_lines):
                     try:
-                        line = scan_queue.get(timeout=1)
+                        line = scan_queue.get(timeout=1) #line becomes latest queue.get
+
+                        ### >> ADD IF STATEMENT FOR LOSING CONNECTION > POWER OFF / ON CYCLE
+                        ### >> DELETE BCKGRND SCAN > START BACKGROUND SCAN
+                        ### >> TEST AND ADD TIMESLEEP ???? MAKE SURE IT DOES NOT CRASH ON SLOW HARDWARE
+
+
+
                         local_scan_lines.append(line)
                     except queue.Empty:
-                        print(f"Waiting for {mac} to appear")
+                        print(f"Waiting for {mac} to appear") #waiting for new entry in queue to appear
 
-                # BROKE OUT OF INNER WHILE LOOP FOR MAC APPEAR IN SCAN_LINES > ATTEMPTING TO TRUST
+                # BROKE OUT OF INNER WHILE LOOP FOR MAC APPEAR IN local_scan_lines > ATTEMPTING TO TRUST
                 max_trusting_attempts += 1
                 print(f"Attempting to trust with {mac}. Trusting attempt: {max_trusting_attempts}")
                 trust_device(mac)
@@ -281,3 +288,15 @@ if __name__ == "__main__":
 ################################
 ######### TO DO ################
 ################################
+
+## -- BLUETOOTH SCAN TRUST / PAIR while loop improvement :
+## -- ERROR HANDLING >> Controller {CONTROLLER OUTPUT} Discovering: no   << TRIGGER BLUETOOTH RESTART OFF WAIT ON WAIT SCAN ON FUNC
+## -- ERROR HANDLING >> NO SCAN INPUT FOR x time                         << TRIGGER BLUETOOTH RESTART OFF WAIT ON WAIT SCAN ON FUNC
+
+
+## -- LOSING A SPEAKER E.G. BATTERY RUNNING OUT / WHATEVER
+## -- upon disconnecting bluetoothctl scan receives 'Device {mac} Connected: no'
+## -- 
+## -- RECONNECTING WORKS WITHOUT SCAN IF PREVIOUSLY CONNECTED, BUT :
+## --   - 'pairable on' needs to be set for automatic reconnection
+## --   - buggy reconnection status 'bluetoothctl devices Connected' no longer reliably list connected devices, causing script to hang

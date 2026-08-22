@@ -17,10 +17,10 @@ def main():
     print("#####################  LIST ALL CONNECTED DEVICES #######################")
 
     print(list_connected_bt_speakers)
-    print("#####################  THE END  #######################")
+    print("####################  FINISHED CONNECTING DEVICES  ######################")
 
 
-    time.sleep(5)
+    time.sleep(5) ## SEEMS NECESSARY SOMETIMES FOR RELIABLE SINK CREATION
     
     # NAME YOUR COMBINED SPEAKER OUTPUT AUDIO SINK
     name_combined_speakers = "klumpil sakkus lumpil"
@@ -29,8 +29,8 @@ def main():
     # cleanup_modules()
 
 
-
-    if all_connected_bt_speakers:
+    
+    if all_connected_bt_speakers: ## bug when speakers auto-reconnect and not show up in 'bluetoothctl devices Connected' anymore
         if not check_if_combined(name_combined_speakers.replace(" ", "")):
             cleanup_modules()
             combine_speakers(name_combined_speakers.replace(" ", "")) 
@@ -42,3 +42,7 @@ def main():
 
 main()
 
+## TO DO ##
+
+## - RECONNECTION BUG DOES NOT TRIGGER COMBINE_SPEAKERS
+## - BUILD DIFFERENT WAY OF TESTING ENV SPEAKERS LIST AGAINST COMBINED SPEAKERS SINKS, DO NOT RELY ON BLUETOOTHCTL
