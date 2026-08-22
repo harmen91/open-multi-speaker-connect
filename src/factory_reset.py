@@ -11,3 +11,4 @@ def factory_reset():
 
 if __name__ == "__main__":
     factory_reset()
+    # cleanup_modules()

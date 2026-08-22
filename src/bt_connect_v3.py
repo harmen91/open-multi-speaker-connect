@@ -43,8 +43,8 @@ def bt_select_default_controller(controller):
     )
     return proc.stdout + proc.stderr
 
-# BLUETOOTH BACKGROUND SCAN PROCESS AND FILL SCAN_LINES FOR DURATION --timeout
-scan_lines = []
+# BLUETOOTH BACKGROUND SCAN PROCESS AND FILL SCAN_QUEUE FOR DURATION --timeout
+scan_queue = queue.Queue()
 def bt_background_scan_on():
     print("Starting background scan...")
 
@@ -60,7 +60,7 @@ def bt_background_scan_on():
         for line in scan_process.stdout:
             line = line.rstrip()       
             print(line) # >>>>>>>>> DISABLE THIS IN THE FUTURE <<<<<<<<<<<<
-            scan_lines.append(line)
+            scan_queue.put(line)
     threading.Thread(target=read_output, daemon=True).start()
 
     return scan_process
@@ -156,6 +156,14 @@ def pair_device(mac):
 
 # TRUST AND PAIR ALL DEVICES IN OUTPUT_DEVICES 
 def trust_and_pair_devices(OUTPUT_DEVICES):
+    local_scan_lines = []
+
+    while True:
+        try:
+            local_scan_lines.append(scan_queue.get_nowait())
+        except queue.Empty:
+            break
+
     for mac in OUTPUT_DEVICES:
         trusted = check_if_trusted(mac)
         paired = check_if_paired(mac)
@@ -170,9 +178,12 @@ def trust_and_pair_devices(OUTPUT_DEVICES):
                 
                 # WHILE MAC DID NOT APPEAR YET WAIT 1 SECOND, RIGHT NOW INFINITE LOOP !! 
                 ## Idea??>> DO SOMETHING WITH POWER OFF ON OR TOGGLE SCAN ON ??? >> CHECK SCAN LINE FOR "[CHG] Controller C4:3D:1A:00:BE:68 Discovering: no"
-                while not any(mac in line for line in scan_lines):
-                    print(f"Waiting for {mac} to appear in scan_lines")
-                    time.sleep(1)
+                while not any(mac in line for line in local_scan_lines):
+                    try:
+                        line = scan_queue.get(timeout=1)
+                        local_scan_lines.append(line)
+                    except queue.Empty:
+                        print(f"Waiting for {mac} to appear")
 
                 # BROKE OUT OF INNER WHILE LOOP FOR MAC APPEAR IN SCAN_LINES > ATTEMPTING TO TRUST
                 max_trusting_attempts += 1
@@ -245,19 +256,11 @@ def bluetooth_connect_speakers(CONTROLLER_OUTPUT, OUTPUT_DEVICES):
         trust_and_pair_devices(OUTPUT_DEVICES)
         time.sleep(1)
 
-        # print("#####################  RESTART BLUETOOTH CONTROLLER #######################")
-        # bt_bluetoothctl("scan off")
-        # time.sleep(1)
-        # bt_bluetoothctl("power off")
-        # time.sleep(1)
-        # bt_bluetoothctl("power on")
-        # time.sleep(3)
-
         print("#####################  CONNECT ALL DEVICES #######################")
         connect_devices(OUTPUT_DEVICES)
 
-        print("#####################  TERMINATE ALL LINGERING BACKGROUND SCAN SERVICES #######################")    
-        bt_scan_stop_all()
+        # print("#####################  TERMINATE ALL LINGERING BACKGROUND SCAN SERVICES #######################")    
+        # bt_scan_stop_all()
 
     return check_if_all_connected(OUTPUT_DEVICES)
 
@@ -278,5 +281,3 @@ if __name__ == "__main__":
 ################################
 ######### TO DO ################
 ################################
-
-    # - fix scan_lines >> queue.Queue() see administration md file
