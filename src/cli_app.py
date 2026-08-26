@@ -365,3 +365,54 @@ if __name__ == "__main__":
     }
 
     start_app(title="OPEN SPEAKER CONNECT", menu_config=app_config)
+
+
+
+
+    ### HOW IT WORKS ###
+
+    """ 
+    1. Initialization & Layout Setup
+
+        start_app() & curses.wrapper(_main):
+            curses.wrapper safely initializes your terminal (disabling cursor echo, setting cbreak mode) and restores it upon exit or crash.
+        Window Splitting:
+            menu_win: A fixed top window (1212 rows high) dedicated to rendering the title, menu items, and input prompts.
+            log_win: A dynamic bottom window filling the remaining screen space (max_y - 12), configured with scrollok(True) to automatically scroll logs upwards.
+
+    2. Auto-Discovery & Menu Tree (build_menu)
+
+        When you provide app_config:
+            If a value is a nested dictionary, it creates a submenu MenuItem and recursively instantiates a child Menu.
+            If a value is a callable function, inspect.signature(target) detects if the function accepts parameters (needs_input=True) and checks if it was marked with @non_blocking.
+
+    3. The Interactive Loop (Menu.run)
+
+    The menu runs a continuous non-blocking loop checked every 50ms (menu_win.timeout(50)):
+
+        _draw(): Erases and renders the menu items. The active index (sel) gets curses.A_REVERSE (highlighted), or curses.A_DIM if the system is busy.
+        _drain_logs(): Checks the thread-safe LOG_QUEUE and writes any pending logs into log_win.
+        menu_win.getch():
+            Up/Down arrows (k/j): Cycles through selections (sel = (sel ± 1) % total).
+            Enter: Triggers _select() for the highlighted item.
+            Esc / Backspace: Exits the current submenu (or app from root).
+            q: Terminates the program.
+            Busy Guard: If BUSY_EVENT.is_set() is True, keystrokes are ignored to prevent accidental commands.
+
+    4. Dynamic Input Handling (_select)
+
+    When an action is triggered:
+
+        The code inspects the function parameters and dynamically calls:
+            prompt_str() for string inputs (e.g., name: str).
+            prompt_int() for numeric values (e.g., level: int).
+            prompt_confirm() for boolean confirmations (e.g., confirm: bool).
+        If the user cancels with Esc, input returns None and execution safely aborts without running the action.
+
+    5. Multithreaded Execution & Logging (_worker)
+
+        Actions execute in a background daemon thread (threading.Thread).
+        Blocking Tasks (Default): Sets BUSY_EVENT, locking menu navigation until completion.
+        @non_blocking Tasks: Leaves BUSY_EVENT unset, keeping the menu interactive.
+        Logging: Any thread calling log("message") pushes text into LOG_QUEUE, which the main loop flushes to log_win during its 50ms cycle.
+    """

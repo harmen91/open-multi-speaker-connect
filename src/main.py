@@ -3,7 +3,7 @@ import sys
 import builtins
 
 from load_env import CONTROLLER_INPUT, CONTROLLER_OUTPUT, INPUT_DEVICES, OUTPUT_DEVICES
-from bt_connect_v3 import bluetooth_connect_speakers, check_if_all_connected, bt_remove_devices
+from bt_connect import bluetooth_connect_speakers, check_if_all_connected, bt_remove_devices
 from factory_reset import factory_reset
 from audio_sinks import combine_speakers, cleanup_modules, check_if_combined
 from cli_app import start_app, log, non_blocking

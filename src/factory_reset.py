@@ -1,4 +1,4 @@
-from bt_connect_v3 import bt_remove_devices
+from bt_connect import bt_remove_devices
 from audio_sinks import cleanup_modules
 
 def factory_reset():
