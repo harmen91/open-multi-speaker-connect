@@ -81,14 +81,40 @@ class Menu:
         if item.is_submenu():
             item.submenu.run(menu_win, log_win)
         else:
+            args = []
             prompt_y = len(self.items) + 3
+
             if item.needs_input:
-                units = prompt_int(menu_win, f"Enter value for '{item.label}': ", y=prompt_y)
-                if units is None:
-                    return
-                args = (units,)
-            else:
-                args = ()
+                sig = inspect.signature(item.action)
+
+                for param in sig.parameters.values():
+                    # 1. Confirmation prompt (includes previous inputs if available)
+                    if param.annotation is bool or "confirm" in param.name.lower():
+                        if args:
+                            preview = ", ".join(f"'{a}'" for a in args)
+                            msg = f"Confirm {item.label} with {preview}?"
+                        else:
+                            msg = f"Confirm {item.label}?"
+
+                        val = prompt_confirm(menu_win, msg, y=prompt_y)
+                        if not val:
+                            log(f"[Cancelled] '{item.label}' aborted.")
+                            return
+                        args.append(True)
+
+                    # 2. String input
+                    elif param.annotation is str:
+                        val = prompt_str(menu_win, f"Enter {param.name}: ", y=prompt_y)
+                        if val is None:
+                            return
+                        args.append(val)
+
+                    # 3. Integer input
+                    else:
+                        val = prompt_int(menu_win, f"Enter {param.name}: ", y=prompt_y)
+                        if val is None:
+                            return
+                        args.append(val)
 
             ## THIS INTERNAL WORKER FUNCTION EXECUTES THE ACTION IN A THREAD, OPTIONALLY RAISING THE BUSY LOCK AND LOGGING ANY RETURN VALUES
             def _worker():
@@ -136,6 +162,36 @@ class Menu:
         if updated:
             log_win.refresh()
 
+def prompt_str(win, prompt, y=4):
+    curses.noecho()
+    curses.curs_set(1)
+    win.timeout(-1)
+    win.addstr(y, 4, prompt)
+    win.refresh()
+    buf = ""
+    while True:
+        ch = win.getch()
+        if ch in (10, 13):
+            # Only submit if at least one non-whitespace character was entered
+            if buf.strip():
+                break
+        elif ch == 27:  # Esc to cancel
+            curses.curs_set(0)
+            win.timeout(50)
+            return None
+        elif ch in (curses.KEY_BACKSPACE, 127, 8):
+            buf = buf[:-1]
+        elif 32 <= ch <= 126:
+            buf += chr(ch)
+
+        win.addstr(y, 4 + len(prompt), " " * 30)
+        win.addstr(y, 4 + len(prompt), buf)
+        win.refresh()
+
+    curses.curs_set(0)
+    win.timeout(50)
+    return buf.strip()
+
 
 ## THIS FUNCTION PROMPTS THE USER FOR A NUMERICAL INTEGER INPUT WITH IN-PLACE EDITING, BACKSPACE SUPPORT, AND ESCAPE CANCELLATION
 def prompt_int(win, prompt, y=4):
@@ -148,8 +204,10 @@ def prompt_int(win, prompt, y=4):
     while True:
         ch = win.getch()
         if ch in (10, 13):
-            break
-        elif ch == 27:
+            # Only submit if at least one digit was entered
+            if buf:
+                break
+        elif ch == 27:  # Esc to cancel
             curses.curs_set(0)
             win.timeout(50)
             return None
@@ -157,14 +215,34 @@ def prompt_int(win, prompt, y=4):
             buf = buf[:-1]
         elif 0 <= ch <= 255 and chr(ch).isdigit():
             buf += chr(ch)
+
         win.addstr(y, 4 + len(prompt), " " * 15)
         win.addstr(y, 4 + len(prompt), buf)
         win.refresh()
 
     curses.curs_set(0)
     win.timeout(50)
-    return int(buf) if buf else 0
+    return int(buf)
 
+def prompt_confirm(win, prompt, y=4):
+    """Waits for Y/N. Returns True for Y, False for N or Esc."""
+    win.timeout(-1)
+    curses.curs_set(0)
+    win.addstr(y, 4, f"{prompt} [y/N]: ", curses.A_BOLD)
+    win.refresh()
+    
+    confirmed = False
+    while True:
+        ch = win.getch()
+        if ch in (ord('y'), ord('Y')):
+            confirmed = True
+            break
+        elif ch in (ord('n'), ord('N'), 10, 13, 27):  # N, Enter (default No), or Esc
+            confirmed = False
+            break
+
+    win.timeout(50)
+    return confirmed
 
 ## THIS FUNCTION PARSES A NESTED CONFIG DICTIONARY AND RECURSIVELY CREATES MENU AND MENUITEM INSTANCES WITH AUTOMATIC PARAMETER DETECTION
 def build_menu(title, config):
@@ -213,34 +291,77 @@ def start_app(title="Main Menu", menu_config=None):
 ######### TEST STACK ###########
 ################################
 
-## THIS TEST FUNCTION SIMULATES A LONG BLOCKING TASK THAT LOCKS THE MENU WHILE STREAMING INCREMENTAL LOGS TO THE BOTTOM PANEL
-def test_count():
-    max_count = 10
-    count = 0
-    while count < max_count:
-        count += 1
-        time.sleep(0.3)
-        log(f"Counting (blocked menu): {count}")
-    return "Counting finished."
 
+## TEST SPEAKER CONTROLLER CLASS
+class SpeakerController:
+    def __init__(self, name="Living Room Speaker", initial_volume=50):
+        self.name = name
+        self.volume = initial_volume
 
-## THIS TEST FUNCTION SIMULATES A NON-BLOCKING BACKGROUND WORKER THAT ALLOWS THE USER TO CONTINUE BROWSING THE MENU WHILE LOGS STREAM
-@non_blocking
-def background_scanner():
-    log("Background scanner started (menu interactive!)...")
-    for i in range(1, 11):
-        time.sleep(1)
-        log(f"[Background Task] Scan event #{i}")
-    return "Background scan completed."
+    def set_volume(self, level: int):
+        # 1. Clamp/validate range between 0 and 100
+        if not (0 <= level <= 100):
+            return f"Error: Volume {level}% out of range (must be 0-100)."
+
+        self.volume = level
+
+        # 2. Render visual progress bar: [========..........] 50%
+        bar_width = 20
+        filled = int((self.volume / 100) * bar_width)
+        bar = "=" * filled + "." * (bar_width - filled)
+        
+        log(f"[{self.name}] Level: [{bar}] {self.volume}%")
+        return f"Volume set to {self.volume}%"
+
+    def volume_up(self):
+        return self.set_volume(min(100, self.volume + 10))
+
+    def volume_down(self):
+        return self.set_volume(max(0, self.volume - 10))
+
 
 
 ## THIS BLOCK EXECUTES THE TEST STACK WHEN RUN DIRECTLY AS A STANDALONE SCRIPT
 if __name__ == "__main__":
+
+    ## TEST SPEAKER CONTROLLER OBJECT
+    speaker = SpeakerController()
+
+
+    ## TEST FUNCTION TO SIMULATE NAMING A DEVICE
+    def name_device(name: str, confirm: bool):
+        return f"Device succesfvully renamed to '{name}'."
+
+    ## THIS TEST FUNCTION SIMULATES A LONG BLOCKING TASK THAT LOCKS THE MENU WHILE STREAMING INCREMENTAL LOGS TO THE BOTTOM PANEL
+    def test_count():
+        max_count = 10
+        count = 0
+        while count < max_count:
+            count += 1
+            time.sleep(0.3)
+            log(f"Counting (blocked menu): {count}")
+        return "Counting finished."
+
+
+    ## THIS TEST FUNCTION SIMULATES A NON-BLOCKING BACKGROUND WORKER THAT ALLOWS THE USER TO CONTINUE BROWSING THE MENU WHILE LOGS STREAM
+    @non_blocking
+    def background_scanner():
+        log("Background scanner started (menu interactive!)...")
+        for i in range(1, 11):
+            time.sleep(1)
+            log(f"[Background Task] Scan event #{i}")
+        return "Background scan completed."
     
     app_config = {
+        "Rename Device": name_device,
         "Count (Blocks Menu)": test_count,
         "Background Task (Interactive)": background_scanner,
         "System Check": lambda: "All systems nominal.",
+        "Audio Controls": {
+            "Set Volume (0-100)": speaker.set_volume,
+            "Volume +10%": speaker.volume_up,
+            "Volume -10%": speaker.volume_down,
+        }
     }
 
     start_app(title="OPEN SPEAKER CONNECT", menu_config=app_config)

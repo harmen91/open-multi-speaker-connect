@@ -83,6 +83,9 @@ def test():
 
     start_app(title="OPEN SPEAKER CONNECT", menu_config=app_config)
 
+## NORMAL STACK EXECUTED BY ./MAIN.SH ##
+def normal():
+    test()
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "test":
