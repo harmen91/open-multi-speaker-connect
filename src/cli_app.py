@@ -15,6 +15,11 @@ LOG_QUEUE = queue.Queue()
 ## THIS FLAG SYNCHRONIZES THREAD STATE TO SIGNAL WHEN A BLOCKING BACKGROUND TASK IS ACTIVELY RUNNING AND LOCKING THE UI
 BUSY_EVENT = threading.Event()
 
+ACTIVE_APP = None
+
+def get_active_menu():
+    global ACTIVE_APP
+    return ACTIVE_APP
 
 ## THIS FUNCTION SENDS TEXT MESSAGES INTO THE THREAD-SAFE QUEUE SO THEY CAN BE CONSUMED AND PRINTED IN THE BOTTOM LOG WINDOW
 def log(msg):
@@ -49,6 +54,11 @@ class Menu:
     def __init__(self, title, items):
         self.title = title
         self.items = items
+    
+    def update_config(self, new_config):
+        """Replaces current menu items with a freshly parsed config."""
+        new_menu = build_menu(self.title, new_config)
+        self.items = new_menu.items
 
     ## THIS METHOD RUNS THE INTERACTIVE EVENT LOOP WHICH CONTINUOUSLY DRAWS THE MENU, CHECKS FOR KEYPRESSES, AND DRAINS LOG MESSAGES
     def run(self, menu_win, log_win):
@@ -261,11 +271,12 @@ def build_menu(title, config):
 
 ## THIS FUNCTION IS THE TOP-LEVEL PUBLIC LAUNCHER THAT SPLITS THE TERMINAL SCREEN INTO TOP AND BOTTOM PANELS AND RUNS THE CURSES EVENT LOOP
 def start_app(title="Main Menu", menu_config=None):
+    global ACTIVE_APP
     if menu_config is None:
         menu_config = {}
 
     nav_info = " || Hit ESC to go back. Press Q to quit."
-    main_menu = build_menu(f"{title} {nav_info}", menu_config)
+    ACTIVE_APP = build_menu(f"{title} {nav_info}", menu_config)
 
     ## THIS INTERNAL WRAPPER FUNCTION CREATES AND CONFIGURES THE CURSES WINDOW OBJECTS AND STARTS THE MAIN EVENT LOOP
     def _main(stdscr):
@@ -282,7 +293,7 @@ def start_app(title="Main Menu", menu_config=None):
         log_win.scrollok(True)
 
         log("System initialized. Ready.")
-        main_menu.run(menu_win, log_win)
+        ACTIVE_APP.run(menu_win, log_win)
 
     curses.wrapper(_main)
 

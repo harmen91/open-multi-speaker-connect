@@ -2,93 +2,76 @@ import time
 import sys
 import builtins
 
-from load_env import CONTROLLER_INPUT, CONTROLLER_OUTPUT, INPUT_DEVICES, OUTPUT_DEVICES
+from load_env import CONTROLLER_INPUT, CONTROLLER_OUTPUT, INPUT_DEVICES, OUTPUT_DEVICES, COMBINED_OUTPUT_SINK
 from bt_connect import bluetooth_connect_speakers, check_if_all_connected, bt_remove_devices
+from audio_manager import AudioManager
 from factory_reset import factory_reset
-from audio_sinks import combine_speakers, cleanup_modules, check_if_combined
-from cli_app import start_app, log, non_blocking
+from audio_sinks import combine_speakers, cleanup_modules, check_if_combined, pactl, build_speakers
+from cli_app import start_app, log, non_blocking, get_active_menu
 
 ## HIJACKING PRINT STATEMENTS GLOBALLY ACROSS ALL IMPORTED MODULES FOR RENDERING IN CLI_APP
 builtins.print = log
 
+# INSTANTIATE AUDIOMANAGER
+audio_mgr = AudioManager()
+
+# CONNECT ALL DEVICES CURRENTLY LISTED IN ENV USING CONTROLLER OUTPUT
 def connect_all():
-
-    # RUN BT_CONNECT_v3 CONNECT ALL OUTPUT_DEVICES TO CONTROLLER_OUTPUT > RETURNS (BOOL,[LIST])
-    # UNPACK RETURN TUPLE IN BOOLEAN AND LIST
-    all_connected_bt_speakers, list_connected_bt_speakers = bluetooth_connect_speakers(CONTROLLER_OUTPUT, OUTPUT_DEVICES)
-   
-    print("#####################  ARE ALL DEVICES CONNECTED? #######################")
-    print(all_connected_bt_speakers)
-    print("#####################  LIST ALL CONNECTED DEVICES #######################")
-
-    print(list_connected_bt_speakers)
-    print("####################  FINISHED CONNECTING DEVICES  ######################")
-
-    time.sleep(5) ## SEEMS NECESSARY SOMETIMES FOR RELIABLE SINK CREATION
+    all_connected, connected_list = bluetooth_connect_speakers(CONTROLLER_OUTPUT, OUTPUT_DEVICES)
     
-    # NAME YOUR COMBINED SPEAKER OUTPUT AUDIO SINK
-    name_combined_speakers = "klumpil sakkus lumpil"
+    print("##################### ARE ALL DEVICES CONNECTED? #######################")
+    print(all_connected)
+    print("##################### LIST ALL CONNECTED DEVICES #######################")
+    print(connected_list)
+    print("#################### FINISHED CONNECTING DEVICES ######################")
+
+    time.sleep(5)
     
-    if all_connected_bt_speakers: ## bug when speakers auto-reconnect and not show up in 'bluetoothctl devices Connected' anymore
-        if not check_if_combined(name_combined_speakers.replace(" ", "")):
+    name_combined_speakers = COMBINED_OUTPUT_SINK.replace(" ", "")
+    
+    if all_connected:
+        if not check_if_combined(name_combined_speakers):
             cleanup_modules()
-            combine_speakers(name_combined_speakers.replace(" ", "")) 
+            
+            # 1. Store speakers on audio_mgr
+            audio_mgr.speakers = combine_speakers(name_combined_speakers)
+            # 2. Save state immediately to JSON!
+            audio_mgr.save_state()
         else:
             print(f"Already combined as {name_combined_speakers}")
     else:
         print("Bluetooth initialization failed")
+
+    # ONE COMMAND TO RELOAD THE ACTIVE MENU AND HAVE SPEAKER OBJECTS REBUILT
+    get_active_menu().update_config(get_app_config())
     
-    return 
+    return "Connect and combine complete!"
 
+def full_factory_reset():
+    factory_reset()
+    audio_mgr.speakers = []
+    return "Factory reset complete."
 
-## TEST STACK ##
-def test():
-    
-    ### TEST MENU ENTRY BLOCKING
-    def test_count():
-        max_count = 10
-        count = 0
-        while count < max_count:
-            count += 1
-            time.sleep(0.3)
-            log(f"Counting (blocked menu): {count}")
-        return "Counting finished."
-
-
-    ### TEST MENU ENTRY NON BLOCKING
-    @non_blocking
-    def background_scanner():
-        log("Background scanner started (menu interactive!)...")
-        for i in range(1, 11):
-            time.sleep(1)
-            log(f"[Background Task] Scan event #{i}")
-        return "Background scan completed."
-
-    app_config = {
-        "Connect all speakers": connect_all,
-        "Count (Blocks Menu)": test_count,
-        "Background Task (Interactive)": background_scanner,
-        "System Check": lambda: "All systems nominal.",
-
-        # Nested Submenu:
-        "Settings": {
-            "Factory Reset": factory_reset,
-            "Cleanup pipewire modules": cleanup_modules,
-            "Remove all bluetooth devices": bt_remove_devices,
-            "Audio Settings": {
-                "Set Volume": lambda: "Placeholder set volume",
-            },
+def get_app_config():
+    return {
+        "BLUETOOTHCTL Connect All & Combine": connect_all,
+        "Speaker Controls": audio_mgr.build_menu_config(),
+        "Master Volume (0-100)": audio_mgr.set_master_volume,
+        "System": {
+            "Full Factory Reset": full_factory_reset,
+            "Unpair Bluetooth Devices": bt_remove_devices,
         },
     }
 
-    start_app(title="OPEN SPEAKER CONNECT", menu_config=app_config)
+def main():
 
-## NORMAL STACK EXECUTED BY ./MAIN.SH ##
-def normal():
-    test()
+    # Re-attach to running sinks if they already exist, otherwise do nothing
+    if check_if_combined(audio_mgr.combined_sink_name):
+        if not audio_mgr.speakers:
+            audio_mgr.speakers = build_speakers()
+            audio_mgr.save_state()
+
+    start_app(title="OPEN SPEAKER CONNECT", menu_config=get_app_config())
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "test":
-        test()
-    else:
-        normal()
+    main()

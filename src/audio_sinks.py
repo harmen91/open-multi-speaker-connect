@@ -49,6 +49,27 @@ class BluetoothSpeaker:
         self.null_sink_module_id = None
         self.loopback_sink_name = None
         self.loopback_sink_module_id = None
+
+    def to_dict(self):
+        return {
+            "mac": self.mac,
+            "name": self.name,
+            "sink_id": self.sink_id,
+            "latency_ms": self.latency_ms,
+            "null_sink_module_id": self.null_sink_module_id,
+            "loopback_module_id": self.loopback_module_id,
+        }
+
+    @classmethod
+    def from_dict(cls, data):
+        return cls(
+            mac=data["mac"],
+            name=data["name"],
+            sink_id=data["sink_id"],
+            latency_ms=data.get("latency_ms", 0),
+            loopback_module_id=data.get("loopback_module_id"),
+            null_sink_module_id=data.get("null_sink_module_id"),
+        )
     
     def create_null_sink(self):
         self.null_sink_name = self.name + "_null_delayed"
@@ -61,6 +82,30 @@ class BluetoothSpeaker:
     def get_null_sink_name(self):
         return self.null_sink_name 
     
+    def set_volume(self, level: int):
+        level = max(0, min(100, level))
+        pactl(f"set-sink-volume {self.name} {level}%")
+        return f"Set {self.name} volume to {level}%"
+
+    def set_latency(self, latency_ms: int):
+        self.latency_ms = latency_ms
+        # Unload existing loopback and reload with updated latency
+        if self.loopback_module_id:
+            pactl(f"unload-module {self.loopback_module_id.strip()}")
+            
+        out = pactl(
+            f"load-module module-loopback "
+            f"source={self.null_sink_name}.monitor "
+            f"sink={self.name} "
+            f"latency_msec={self.latency_ms}"
+        )
+        self.loopback_module_id = out.strip()
+        return f"Updated {self.name} latency to {latency_ms}ms"
+
+    def toggle_mute(self):
+        pactl(f"set-sink-mute {self.name} toggle")
+        return f"Toggled mute on {self.name}"
+
 
     def __repr__(self):
         return f"BluetoothSpeaker(name={self.name!r}, mac={self.mac!r}, sink_id={self.sink_id!r}, null_sink_name={self.null_sink_name}, null_sink_module_id={self.null_sink_module_id})"
@@ -106,6 +151,7 @@ def combine_speakers(name_combined_sink):
     pactl(f"set-default-sink {name_combined_sink}")
 
     print(f"Succes!")
+    return speakers
 
 
 
@@ -114,8 +160,12 @@ def combine_speakers(name_combined_sink):
 ## IF NOT COMBINED, BUT CONNECTED > SHOULD REMOVE SINK AND ALL CORRESPONDING NULLSINKS AND TRY AGAIN
 ### WORK IN PROGRESS ####
 def check_if_combined(name_combined_sink):
-    if name_combined_sink in pactl("list short sinks"):
-        return True
+    out = pactl("list short sinks")
+    # Check each line's second column (the sink name)
+    for line in out.splitlines():
+        fields = line.split()
+        if len(fields) >= 2 and fields[1] == name_combined_sink:
+            return True
     return False
 
 
