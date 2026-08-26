@@ -1,0 +1,246 @@
+import os
+
+## THIS LINE SETS THE ESCAPE KEY DELAY TO 25MS BEFORE CURSES IMPORTS SO EXITING MENUS IS INSTANT WITHOUT DELAY
+os.environ.setdefault('ESCDELAY', '25')
+
+import curses
+import inspect
+import queue
+import threading
+import time
+
+## THIS OBJECT HOLDS A THREAD-SAFE MESSAGE QUEUE USED BY ALL BACKGROUND WORKERS TO PASS LOG STRINGS SAFELY TO THE TUI
+LOG_QUEUE = queue.Queue()
+
+## THIS FLAG SYNCHRONIZES THREAD STATE TO SIGNAL WHEN A BLOCKING BACKGROUND TASK IS ACTIVELY RUNNING AND LOCKING THE UI
+BUSY_EVENT = threading.Event()
+
+
+## THIS FUNCTION SENDS TEXT MESSAGES INTO THE THREAD-SAFE QUEUE SO THEY CAN BE CONSUMED AND PRINTED IN THE BOTTOM LOG WINDOW
+def log(msg):
+    LOG_QUEUE.put(str(msg))
+
+
+## THIS CLASS REPRESENTS A SINGLE ENTRY IN A MENU HOLDING ITS DISPLAY LABEL, ITS ACTION CALLBACK OR SUBMENU, AND EXECUTION SETTINGS
+class MenuItem:
+    ## THIS CONSTRUCTOR INITIALIZES THE MENU ITEM ATTRIBUTES AND ENSURES EITHER AN ACTION FUNCTION OR SUBMENU IS PROVIDED
+    def __init__(self, label, action=None, submenu=None, needs_input=False, blocking=True):
+        assert action or submenu, "MenuItem needs an action or a submenu"
+        self.label = label
+        self.action = action
+        self.submenu = submenu
+        self.needs_input = needs_input
+        self.blocking = blocking
+
+    ## THIS METHOD CHECKS IF THIS SPECIFIC ITEM OPENS ANOTHER SUBMENU RATHER THAN RUNNING A TERMINAL ACTION
+    def is_submenu(self):
+        return self.submenu is not None
+
+
+## THIS DECORATOR ATTACHES A NON-BLOCKING ATTRIBUTE FLAG TO A TARGET FUNCTION SO THE MENU DOES NOT LOCK WHILE IT RUNS IN THE BACKGROUND
+def non_blocking(fn):
+    fn._blocking = False
+    return fn
+
+
+## THIS CLASS MANAGES DRAWING AND HANDLING KEYBOARD EVENTS FOR A COLLECTION OF MENU ITEMS INSIDE A DEDICATED CURSES WINDOW
+class Menu:
+    ## THIS CONSTRUCTOR INITIALIZES THE MENU TITLE AND ITS LIST OF MENU ITEMS
+    def __init__(self, title, items):
+        self.title = title
+        self.items = items
+
+    ## THIS METHOD RUNS THE INTERACTIVE EVENT LOOP WHICH CONTINUOUSLY DRAWS THE MENU, CHECKS FOR KEYPRESSES, AND DRAINS LOG MESSAGES
+    def run(self, menu_win, log_win):
+        sel = 0
+        menu_win.timeout(50)
+
+        while True:
+            self._draw(menu_win, sel)
+            self._drain_logs(log_win)
+
+            key = menu_win.getch()
+
+            ## THIS CHECK PREVENTS USER NAVIGATION AND ACTION SELECTION WHENEVER A BLOCKING BACKGROUND TASK IS RUNNING
+            if BUSY_EVENT.is_set():
+                continue
+
+            if key in (curses.KEY_UP, ord('k')):
+                sel = (sel - 1) % len(self.items)
+            elif key in (curses.KEY_DOWN, ord('j')):
+                sel = (sel + 1) % len(self.items)
+            elif key in (10, 13):
+                self._select(menu_win, log_win, self.items[sel])
+            elif key in (27, curses.KEY_BACKSPACE, 127, 8):
+                return
+            elif key == ord('q'):
+                raise SystemExit
+
+    ## THIS METHOD HANDLES WHAT HAPPENS WHEN AN ITEM IS SELECTED BY EITHER OPENING A SUBMENU OR RUNNING ITS ACTION IN A BACKGROUND THREAD
+    def _select(self, menu_win, log_win, item):
+        if item.is_submenu():
+            item.submenu.run(menu_win, log_win)
+        else:
+            prompt_y = len(self.items) + 3
+            if item.needs_input:
+                units = prompt_int(menu_win, f"Enter value for '{item.label}': ", y=prompt_y)
+                if units is None:
+                    return
+                args = (units,)
+            else:
+                args = ()
+
+            ## THIS INTERNAL WORKER FUNCTION EXECUTES THE ACTION IN A THREAD, OPTIONALLY RAISING THE BUSY LOCK AND LOGGING ANY RETURN VALUES
+            def _worker():
+                try:
+                    if item.blocking:
+                        BUSY_EVENT.set()
+                    result = item.action(*args)
+                    if result is not None:
+                        log(f"[Result] {result}")
+                except Exception as e:
+                    log(f"[Error] {e}")
+                finally:
+                    if item.blocking:
+                        BUSY_EVENT.clear()
+
+            threading.Thread(target=_worker, daemon=True).start()
+
+    ## THIS METHOD RENDERS THE MENU TITLE, BUSY INDICATOR, AND HIGHLIGHTED/DIMMED MENU ITEMS TO THE TOP MENU WINDOW
+    def _draw(self, menu_win, sel):
+        menu_win.erase()
+
+        status = " [BUSY - PLEASE WAIT]" if BUSY_EVENT.is_set() else ""
+        menu_win.addstr(0, 2, self.title + status, curses.A_BOLD)
+
+        for i, item in enumerate(self.items):
+            if BUSY_EVENT.is_set():
+                attr = curses.A_DIM
+            else:
+                attr = curses.A_REVERSE if i == sel else 0
+
+            label = item.label + (" >" if item.is_submenu() else "")
+            menu_win.addstr(2 + i, 4, label, attr)
+        menu_win.refresh()
+
+    ## THIS METHOD CONSUMES ALL PENDING MESSAGES FROM THE LOG QUEUE AND PRINTS THEM LINE BY LINE INTO THE SCROLLING BOTTOM LOG WINDOW
+    def _drain_logs(self, log_win):
+        updated = False
+        while not LOG_QUEUE.empty():
+            try:
+                msg = LOG_QUEUE.get_nowait()
+                log_win.addstr(f"{msg}\n")
+                updated = True
+            except queue.Empty:
+                break
+        if updated:
+            log_win.refresh()
+
+
+## THIS FUNCTION PROMPTS THE USER FOR A NUMERICAL INTEGER INPUT WITH IN-PLACE EDITING, BACKSPACE SUPPORT, AND ESCAPE CANCELLATION
+def prompt_int(win, prompt, y=4):
+    curses.noecho()
+    curses.curs_set(1)
+    win.timeout(-1)
+    win.addstr(y, 4, prompt)
+    win.refresh()
+    buf = ""
+    while True:
+        ch = win.getch()
+        if ch in (10, 13):
+            break
+        elif ch == 27:
+            curses.curs_set(0)
+            win.timeout(50)
+            return None
+        elif ch in (curses.KEY_BACKSPACE, 127, 8):
+            buf = buf[:-1]
+        elif 0 <= ch <= 255 and chr(ch).isdigit():
+            buf += chr(ch)
+        win.addstr(y, 4 + len(prompt), " " * 15)
+        win.addstr(y, 4 + len(prompt), buf)
+        win.refresh()
+
+    curses.curs_set(0)
+    win.timeout(50)
+    return int(buf) if buf else 0
+
+
+## THIS FUNCTION PARSES A NESTED CONFIG DICTIONARY AND RECURSIVELY CREATES MENU AND MENUITEM INSTANCES WITH AUTOMATIC PARAMETER DETECTION
+def build_menu(title, config):
+    items = []
+    for label, target in config.items():
+        if isinstance(target, dict):
+            submenu = build_menu(label, target)
+            items.append(MenuItem(label, submenu=submenu))
+        elif callable(target):
+            sig = inspect.signature(target)
+            needs_input = len(sig.parameters) > 0
+            blocking = getattr(target, "_blocking", True)
+            items.append(MenuItem(label, action=target, needs_input=needs_input, blocking=blocking))
+    return Menu(title, items)
+
+
+## THIS FUNCTION IS THE TOP-LEVEL PUBLIC LAUNCHER THAT SPLITS THE TERMINAL SCREEN INTO TOP AND BOTTOM PANELS AND RUNS THE CURSES EVENT LOOP
+def start_app(title="Main Menu", menu_config=None):
+    if menu_config is None:
+        menu_config = {}
+
+    nav_info = " || Hit ESC to go back. Press Q to quit."
+    main_menu = build_menu(f"{title} {nav_info}", menu_config)
+
+    ## THIS INTERNAL WRAPPER FUNCTION CREATES AND CONFIGURES THE CURSES WINDOW OBJECTS AND STARTS THE MAIN EVENT LOOP
+    def _main(stdscr):
+        curses.curs_set(0)
+        max_y, max_x = stdscr.getmaxyx()
+
+        ## THIS SPLITS THE TERMINAL INTO A TOP FIXED WINDOW FOR THE MENU AND A BOTTOM SCROLLABLE WINDOW FOR LOG MESSAGES
+        menu_height = 12
+        menu_win = curses.newwin(menu_height, max_x, 0, 0)
+        menu_win.keypad(True)
+
+        log_height = max_y - menu_height
+        log_win = curses.newwin(log_height, max_x, menu_height, 0)
+        log_win.scrollok(True)
+
+        log("System initialized. Ready.")
+        main_menu.run(menu_win, log_win)
+
+    curses.wrapper(_main)
+
+
+################################
+######### TEST STACK ###########
+################################
+
+## THIS TEST FUNCTION SIMULATES A LONG BLOCKING TASK THAT LOCKS THE MENU WHILE STREAMING INCREMENTAL LOGS TO THE BOTTOM PANEL
+def test_count():
+    max_count = 10
+    count = 0
+    while count < max_count:
+        count += 1
+        time.sleep(0.3)
+        log(f"Counting (blocked menu): {count}")
+    return "Counting finished."
+
+
+## THIS TEST FUNCTION SIMULATES A NON-BLOCKING BACKGROUND WORKER THAT ALLOWS THE USER TO CONTINUE BROWSING THE MENU WHILE LOGS STREAM
+@non_blocking
+def background_scanner():
+    log("Background scanner started (menu interactive!)...")
+    for i in range(1, 11):
+        time.sleep(1)
+        log(f"[Background Task] Scan event #{i}")
+    return "Background scan completed."
+
+
+## THIS BLOCK EXECUTES THE TEST STACK WHEN RUN DIRECTLY AS A STANDALONE SCRIPT
+if __name__ == "__main__":
+    
+    app_config = {
+        "Count (Blocks Menu)": test_count,
+        "Background Task (Interactive)": background_scanner,
+        "System Check": lambda: "All systems nominal.",
+    }
+
+    start_app(title="OPEN SPEAKER CONNECT", menu_config=app_config)
