@@ -13,7 +13,7 @@ from app.use_cases import connect_all
 from interfaces.tui.presenter import build_app_config
 from interfaces.tui.engine import start_app, log, non_blocking, get_active_menu
 
-# INSTANTIATE AUDIOMANAGER
+# INSTANTIATE AUDIOMANAGER // LOADS JSON STATE FILE AND BUILDS SPEAKER OBJECTS FROM SPEAKER CLASS
 audio_mgr = AudioManager()
 
 def tui_connect_all():
