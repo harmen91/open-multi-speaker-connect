@@ -1,3 +1,3 @@
 #!/bin/sh
 
-python3 main.py tui
+python3 main.py --tui
