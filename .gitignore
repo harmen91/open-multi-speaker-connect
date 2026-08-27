@@ -10,4 +10,4 @@ ai-vibecoded-bullshit/
 .env
 
 # generated speaker_state.sjon file
-speaker_state.sjon
+speaker_state.json
