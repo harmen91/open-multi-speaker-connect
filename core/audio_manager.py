@@ -1,8 +1,8 @@
 import os
 import json
 import time
-from audio_sinks import build_speakers, combine_speakers, cleanup_modules, pactl, BluetoothSpeaker
-from load_env import COMBINED_OUTPUT_SINK
+from core.audio_sinks import build_speakers, combine_speakers, cleanup_modules, pactl, BluetoothSpeaker
+from core.load_env import COMBINED_OUTPUT_SINK
 
 # STATE FILE 
 STATE_FILE = "speaker_state.json"
@@ -50,17 +50,17 @@ class AudioManager:
 
 
 
-    ## NEEDS TO LEAVE THIS FILE
-    def build_menu_config(self):
-        speaker_submenus = {}
+    # ## NEEDS TO LEAVE THIS FILE
+    # def build_menu_config(self):
+    #     speaker_submenus = {}
 
-        for spk in self.speakers:
-            speaker_submenus[f"Speaker: {spk.name}"] = {
-                "Set Latency (ms)": spk.set_latency,
-                "Set Volume (0-100)": spk.set_volume,
-                "Toggle Mute": spk.toggle_mute,
-            }
+    #     for spk in self.speakers:
+    #         speaker_submenus[f"Speaker: {spk.name}"] = {
+    #             "Set Latency (ms)": spk.set_latency,
+    #             "Set Volume (0-100)": spk.set_volume,
+    #             "Toggle Mute": spk.toggle_mute,
+    #         }
 
-        return speaker_submenus if speaker_submenus else {
-            "No speakers active (Run Setup)": lambda: print("Run Audio Setup first.")
-        }
+    #     return speaker_submenus if speaker_submenus else {
+    #         "No speakers active (Run Setup)": lambda: print("Run Audio Setup first.")
+    #     }

@@ -2,7 +2,7 @@
 import os
 import subprocess
 import time
-from bt_connect import check_if_all_connected
+from core.bt_connect import check_if_all_connected
 
 # FUNC TO CLEANUP NULL, LOOPBACK AND COMBINE SINKS
 def cleanup_modules():
