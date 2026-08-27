@@ -1,7 +1,8 @@
 import os
 import json
 import time
-from core.audio_sinks import build_speakers, combine_speakers, cleanup_modules, pactl, BluetoothSpeaker
+from core.audio_sinks import build_speakers, combine_speakers, cleanup_modules, BluetoothSpeaker
+from core.pactl import pactl
 from core.load_env import COMBINED_OUTPUT_SINK
 
 # STATE FILE 
