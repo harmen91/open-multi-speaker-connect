@@ -1,5 +1,8 @@
 # Python-generated files
+__pycache__/
 core/__pycache__/
+interfaces/tui/__pycache__/
+interfaces/web/__pycache__/
 
 # local work directories and stuff
 administration/

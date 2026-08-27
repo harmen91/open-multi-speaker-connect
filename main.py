@@ -13,8 +13,7 @@ from core.audio_sinks import combine_speakers, cleanup_modules, check_if_combine
 
 from interfaces.tui.engine import start_app, log, non_blocking, get_active_menu
 
-## HIJACKING PRINT STATEMENTS HACK GLOBALLY ACROSS ALL IMPORTED MODULES FOR RENDERING IN CLI_APP
-builtins.print = log
+
 
 # INSTANTIATE AUDIOMANAGER
 audio_mgr = AudioManager()
@@ -121,8 +120,8 @@ def get_app_config():
     }
 
 
-# MAIN
-def main():
+# TERMINAL USER INTERFACE
+def tui():
     # RE-ATTACH AUDIO MANAGER SPEAKER OBJECT CREATION AT STARTUP TO RUNNING SINKS, IF EXIST, OTHERWISE DO NOTHING
     if check_if_combined(audio_mgr.combined_sink_name):
         if not audio_mgr.speakers:
@@ -132,5 +131,15 @@ def main():
     # START TERMINAL CLI_APP
     start_app(title="OPEN SPEAKER CONNECT", menu_config=get_app_config())
 
+# WEB USER INTERFACE
+def web():
+    print("I have to be built still..")
+
+
 if __name__ == "__main__":
-    main()
+    if len(sys.argv) > 1 and sys.argv[1] == "tui":
+        ## HIJACKING PRINT STATEMENTS HACK GLOBALLY ACROSS ALL IMPORTED MODULES FOR RENDERING IN CLI_APP
+        builtins.print = log
+        tui()
+    else:
+        web()
