@@ -67,6 +67,7 @@ def bt_background_scan_on():
 
 # TERMINATE ALL LINGERING BLUETOOTHCTL --timeout PROCESSES // USE TO STOP BACKGROUND SCAN PROCESS
 def bt_scan_stop_all():
+    bt_bluetoothctl("scan off")
     subprocess.run(["pkill", "-f", "bluetoothctl --timeout"])
     print("Terminated any lingering bluetoothctl background scan processes")
 

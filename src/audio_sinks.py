@@ -39,14 +39,14 @@ def dict_mac_to_sink():
 
 # BLUETOOTH SPEAKER CLASS
 class BluetoothSpeaker:
-    def __init__(self, mac, name, sink_id, default_latency_ms=0):
+    def __init__(self, mac, name, sink_id, latency_ms=0, loopback_module_id=None, null_sink_module_id=None):
         self.mac = mac
         self.name = name
         self.sink_id = sink_id
-        self.latency_ms = default_latency_ms
-        self.loopback_module_id = None
+        self.latency_ms = latency_ms
+        self.loopback_module_id = loopback_module_id
         self.null_sink_name = None
-        self.null_sink_module_id = None
+        self.null_sink_module_id = null_sink_module_id
         self.loopback_sink_name = None
         self.loopback_sink_module_id = None
 
@@ -169,8 +169,7 @@ def check_if_combined(name_combined_sink):
     return False
 
 
-# TO DO
-# Implement latency adjustment method
+
 # ADD FL, FR, RL, RR, CENTER to ENV.. map them to the object.. use it later to manually adjust latency
 
 # # CHANGE DELAY 

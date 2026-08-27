@@ -303,7 +303,7 @@ def start_app(title="Main Menu", menu_config=None):
 ################################
 
 
-## TEST SPEAKER CONTROLLER CLASS
+## TEST SPEAKER CONTROLLER CLASS >> THIS IS COOL IMPLEMENT THIS IN AUDIO_SINKS??
 class SpeakerController:
     def __init__(self, name="Living Room Speaker", initial_volume=50):
         self.name = name

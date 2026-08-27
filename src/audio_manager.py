@@ -5,6 +5,7 @@ from audio_sinks import build_speakers, combine_speakers, cleanup_modules, pactl
 from cli_app import log
 from load_env import COMBINED_OUTPUT_SINK
 
+# STATE FILE 
 STATE_FILE = "speaker_state.json"
 
 class AudioManager:

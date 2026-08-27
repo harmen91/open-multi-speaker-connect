@@ -24,4 +24,4 @@ OUTPUT_DEVICES = [v for k, v in env.items() if k.startswith("OUTPUT_DEVICE")]
 # STORED MAC ADDRESSES OF INPUT DEVICES IN ENV
 INPUT_DEVICES = [v for k, v in env.items() if k.startswith("INPUT_DEVICE")] 
 
-COMBINED_OUTPUT_SINK = env["COMBINED_OUTPUT_SINK"]
+COMBINED_OUTPUT_SINK = env["COMBINED_OUTPUT_SINK"].replace(" ", "")
