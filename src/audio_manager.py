@@ -2,7 +2,6 @@ import os
 import json
 import time
 from audio_sinks import build_speakers, combine_speakers, cleanup_modules, pactl, BluetoothSpeaker
-# from cli_app import log
 from load_env import COMBINED_OUTPUT_SINK
 
 # STATE FILE 
@@ -49,6 +48,9 @@ class AudioManager:
         pactl(f"set-sink-volume {self.combined_sink_name} {level}%")
         print(f"Master volume set to {level}%")
 
+
+
+    ## NEEDS TO LEAVE THIS FILE
     def build_menu_config(self):
         speaker_submenus = {}
 
