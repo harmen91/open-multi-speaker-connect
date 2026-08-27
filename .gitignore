@@ -8,3 +8,6 @@ ai-vibecoded-bullshit/
 
 # unique hardware ids like MAC addresses
 .env
+
+# generated speaker_state.sjon file
+speaker_state.sjon
