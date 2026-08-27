@@ -1,5 +1,13 @@
-# interfaces/tui/presenter.py
 from interfaces.tui.engine import log
+import threading
+
+def _wrap_set_latency(speaker, audio_mgr):
+    def action(latency_ms: int):
+        result = speaker.set_latency(latency_ms)
+        # Save happens AFTER the action returns, without blocking the UI
+        threading.Thread(target=audio_mgr.save_state, daemon=True).start()
+        return result
+    return action
 
 def _volume_bar(name: str, level: int, width: int = 20) -> str:
     filled = int((level / 100) * width)
@@ -36,11 +44,11 @@ def _wrap_master_volume(audio_mgr):
         return result
     return action
 
-def build_app_config(audio_mgr, connect_all_fn, factory_reset_fn, unpair_fn):
+def build_app_config(audio_mgr, connect_all_fn, factory_reset_fn, cleanup_modules_fn, unpair_fn, delete_speaker_state_file_fn):
     speaker_controls = {}
     for spk in audio_mgr.speakers:
         speaker_controls[f"Speaker: {spk.name}"] = {
-            "Set Latency (ms)": spk.set_latency,
+            "Set Latency (ms)": _wrap_set_latency(spk, audio_mgr),
             "Set Volume (0-100)": _wrap_speaker_volume(spk),
             "Volume Up 10%": _wrap_volume_up(spk),
             "Volume Down 10%": _wrap_volume_down(spk),
@@ -56,6 +64,8 @@ def build_app_config(audio_mgr, connect_all_fn, factory_reset_fn, unpair_fn):
         "Master Volume (0-100)": _wrap_master_volume(audio_mgr),
         "System": {
             "Full Factory Reset": factory_reset_fn,
+            "Unload Modules": cleanup_modules_fn,
             "Unpair Bluetooth Devices": unpair_fn,
+            "Delete Speaker State JSON File": delete_speaker_state_file_fn,
         },
     }
