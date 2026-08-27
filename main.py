@@ -137,9 +137,11 @@ def web():
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == "tui":
+    if len(sys.argv) > 1 and sys.argv[1] == "--tui":
         ## HIJACKING PRINT STATEMENTS HACK GLOBALLY ACROSS ALL IMPORTED MODULES FOR RENDERING IN CLI_APP
         builtins.print = log
         tui()
-    else:
+    elif len(sys.argv) > 1 and sys.argv[1] == "--web":
         web()
+    else:
+        print("please run this script with either --tui or --web arguments")
