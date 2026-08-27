@@ -39,7 +39,7 @@ def dict_mac_to_sink():
 
 # BLUETOOTH SPEAKER CLASS
 class BluetoothSpeaker:
-    def __init__(self, mac, name, sink_id, latency_ms=500, loopback_module_id=None, null_sink_module_id=None, volume=50):
+    def __init__(self, mac, name, sink_id, latency_ms=0, loopback_module_id=None, null_sink_module_id=None, volume=100):
         self.mac = mac
         self.name = name
         self.sink_id = sink_id

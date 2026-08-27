@@ -6,7 +6,6 @@ def delete_speaker_state_file():
     if os.path.exists("speaker_state.json"):
         os.remove("speaker_state.json")
 
-
 def factory_reset():
     bt_remove_devices()
     cleanup_modules()
