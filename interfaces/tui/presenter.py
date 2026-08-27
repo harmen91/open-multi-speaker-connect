@@ -14,6 +14,20 @@ def _wrap_speaker_volume(speaker):
         return result
     return action
 
+def _wrap_volume_up(speaker):
+    def action():
+        result = speaker.volume_up()
+        log(_volume_bar(speaker.name, speaker.volume))
+        return result
+    return action
+
+def _wrap_volume_down(speaker):
+    def action():
+        result = speaker.volume_down()
+        log(_volume_bar(speaker.name, speaker.volume))
+        return result
+    return action
+
 def _wrap_master_volume(audio_mgr):
     def action(level: int):
         level = max(0, min(100, level))
@@ -28,7 +42,10 @@ def build_app_config(audio_mgr, connect_all_fn, factory_reset_fn, unpair_fn):
         speaker_controls[f"Speaker: {spk.name}"] = {
             "Set Latency (ms)": spk.set_latency,
             "Set Volume (0-100)": _wrap_speaker_volume(spk),
-            "Toggle Mute": spk.toggle_mute,
+            "Volume Up 10%": _wrap_volume_up(spk),
+            "Volume Down 10%": _wrap_volume_down(spk),
+            "Mute On": spk.mute_on,
+            "Mute Off": spk.mute_off,
         }
 
     return {

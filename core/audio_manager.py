@@ -47,20 +47,3 @@ class AudioManager:
         level = max(0, min(100, level))
         pactl(f"set-sink-volume {self.combined_sink_name} {level}%")
         print(f"Master volume set to {level}%")
-
-
-
-    # ## NEEDS TO LEAVE THIS FILE
-    # def build_menu_config(self):
-    #     speaker_submenus = {}
-
-    #     for spk in self.speakers:
-    #         speaker_submenus[f"Speaker: {spk.name}"] = {
-    #             "Set Latency (ms)": spk.set_latency,
-    #             "Set Volume (0-100)": spk.set_volume,
-    #             "Toggle Mute": spk.toggle_mute,
-    #         }
-
-    #     return speaker_submenus if speaker_submenus else {
-    #         "No speakers active (Run Setup)": lambda: print("Run Audio Setup first.")
-    #     }
