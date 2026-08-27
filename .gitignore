@@ -3,7 +3,8 @@ src/__pycache__/
 
 # local work directories and stuff
 administration/
-ai-vibecoded-bullshit
+old_code/
+ai-vibecoded-bullshit/
 
 # unique hardware ids like MAC addresses
 .env
