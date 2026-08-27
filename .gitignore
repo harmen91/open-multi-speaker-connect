@@ -1,6 +1,7 @@
 # Python-generated files
 __pycache__/
 core/__pycache__/
+app/__pychache__/
 interfaces/tui/__pycache__/
 interfaces/web/__pycache__/
 
