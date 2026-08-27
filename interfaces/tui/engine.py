@@ -336,7 +336,6 @@ if __name__ == "__main__":
     ## TEST SPEAKER CONTROLLER OBJECT
     speaker = SpeakerController()
 
-
     ## TEST FUNCTION TO SIMULATE NAMING A DEVICE
     def name_device(name: str, confirm: bool):
         return f"Device succesfvully renamed to '{name}'."
