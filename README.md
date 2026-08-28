@@ -206,5 +206,4 @@ open-multi-speaker-connect/
 
 ## License
 
-MIT License — see `LICENSE`.
-```
+MIT License
