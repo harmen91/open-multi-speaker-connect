@@ -1,6 +1,3 @@
- Here is the full README content — you can copy-paste it directly into your `README.md`:
-
-```markdown
 # Open Multi Speaker Connect (WIP)
 
 **Status: work in progress, not stable.**
