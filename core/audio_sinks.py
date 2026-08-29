@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import subprocess
 import time
 from core.bluetoothctl import all_connected
 from core.speaker import BluetoothSpeaker
@@ -13,7 +14,6 @@ def unload_audio_modules():
     ]
     for cmd in commands:
         subprocess.run(cmd, shell=True)  
-
 
 # CREATE DICTIONAIRY THAT MAPS BLUETOOTHCTL CONFIRMED CONNECTED DEVICES TO PACTL LIST SHORT SINKS
 def map_mac_to_sink():
@@ -30,7 +30,6 @@ def map_mac_to_sink():
                 device_to_sink[device] = {"id": fields[0], "name": fields[1]}
                 break
     return device_to_sink # DICTIONARY = {'MAC':{'SINK ID':'NAME'}}
-
 
 # FUNC TO BUILD LIST OF BLUETOOTH SPEAKER OBJECTS FROM EACH CONNECTED DEVICE IN DICT map_mac_to_sink()
 def build_speaker_list():
@@ -76,7 +75,6 @@ def combine_speakers(name_combined_sink):
     return speakers
 
 
-
 ### FIX THIS TO ACTUALLY DOUBLE CHECK WITH CONNECTED BLUETOOTH DEVICES, NOT JUST SHORT SINK NAME OF COMBINED SINK
 ### >>> !! <<< 
 ## IF NOT COMBINED, BUT CONNECTED > SHOULD REMOVE SINK AND ALL CORRESPONDING NULLSINKS AND TRY AGAIN
@@ -89,6 +87,12 @@ def is_combined_sink_active(name_combined_sink):
         if len(fields) >= 2 and fields[1] == name_combined_sink:
             return True
     return False
+
+
+
+
+
+
 
 
 
