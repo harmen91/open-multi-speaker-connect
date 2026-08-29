@@ -1,7 +1,6 @@
 import os
 import json
-import time
-from core.audio_sinks import build_speaker_list, combine_speakers, unload_audio_modules, BluetoothSpeaker
+from core.audio_sinks import build_speaker_list, combine_speakers, unload_audio_modules
 from core.pactl import pactl
 from core.load_env import COMBINED_OUTPUT_SINK
 

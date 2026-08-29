@@ -1,6 +1,6 @@
 # use_cases.py
 import time
-from core.bt_connect import bluetooth_connect_speakers, all_connected, bluetoothctl_scan_stop
+from core.bluetoothctl import bluetooth_connect_speakers, all_connected, bluetoothctl_scan_stop
 from core.audio_sinks import combine_speakers, unload_audio_modules, is_combined_sink_active
 from core.audio_manager import AudioManager
 
@@ -30,7 +30,7 @@ def connect_and_combine_all(
     # This sleep is a core concern (PipeWire sink reliability), so it stays here.
     time.sleep(5)
 
-    print(bluetoothctl_scan_stop)
+    print(bluetoothctl_scan_stop())
     print("#################### BLUETOOTH BACKGROUND SCAN OFF ######################")
 
     if all_connected:

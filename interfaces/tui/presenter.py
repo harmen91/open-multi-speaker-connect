@@ -44,7 +44,7 @@ def _wrap_master_volume(audio_mgr):
         return result
     return action
 
-def build_app_config(audio_mgr, connect_all_fn, factory_reset_fn, cleanup_modules_fn, bluetoothctl_remove_devices_fn, delete_speaker_state_file_fn):
+def build_app_config(audio_mgr, connect_all_fn, factory_reset_fn, unload_modules_fn, bluetoothctl_remove_devices_fn, delete_speaker_state_file_fn):
     speaker_controls = {}
     for spk in audio_mgr.speakers:
         speaker_controls[f"Speaker: {spk.name}"] = {
@@ -64,7 +64,7 @@ def build_app_config(audio_mgr, connect_all_fn, factory_reset_fn, cleanup_module
         "Master Volume (0-100)": _wrap_master_volume(audio_mgr),
         "System": {
             "Full Factory Reset": factory_reset_fn,
-            "Unload Modules": cleanup_modules_fn,
+            "Unload Modules": unload_modules_fn,
             "Unpair Bluetooth Devices": bluetoothctl_remove_devices_fn,
             "Delete Speaker State JSON File": delete_speaker_state_file_fn,
         },

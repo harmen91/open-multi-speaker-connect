@@ -2,7 +2,7 @@
 import os
 import subprocess
 import time
-from core.bt_connect import all_connected
+from core.bluetoothctl import all_connected
 from core.speaker import BluetoothSpeaker
 from core.pactl import pactl
 

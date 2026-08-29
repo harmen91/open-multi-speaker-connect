@@ -1,5 +1,5 @@
 import os
-from core.bt_connect import bluetoothctl_remove_devices
+from core.bluetoothctl import bluetoothctl_remove_devices
 from core.audio_sinks import unload_audio_modules
 
 def delete_speaker_state_file():
