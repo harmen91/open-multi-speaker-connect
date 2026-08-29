@@ -3,12 +3,12 @@ import sys
 import builtins
 
 from core.load_env import CONTROLLER_INPUT, CONTROLLER_OUTPUT, INPUT_DEVICES, OUTPUT_DEVICES, COMBINED_OUTPUT_SINK
-from core.bt_connect import bluetooth_connect_speakers, check_if_all_connected, bt_remove_devices, bt_scan_stop_all
+from core.bt_connect import bluetooth_connect_speakers, all_connected, bluetoothctl_remove_devices, bluetoothctl_scan_stop
 from core.audio_manager import AudioManager
 from core.factory_reset import factory_reset, delete_speaker_state_file
-from core.audio_sinks import combine_speakers, cleanup_modules, check_if_combined, pactl, build_speakers
+from core.audio_sinks import combine_speakers, unload_audio_modules, is_combined_sink_active, pactl, build_speaker_list
 
-from app.use_cases import connect_all
+from app.use_cases import connect_and_combine_all
 
 from interfaces.tui.presenter import build_app_config
 from interfaces.tui.engine import start_app, log, non_blocking, get_active_menu
@@ -16,9 +16,9 @@ from interfaces.tui.engine import start_app, log, non_blocking, get_active_menu
 # INSTANTIATE AUDIOMANAGER // LOADS JSON STATE FILE AND BUILDS SPEAKER OBJECTS FROM SPEAKER CLASS
 audio_mgr = AudioManager()
 
-def tui_connect_all():
+def tui_connect_and_combine_all():
     """Thin wrapper: runs the use case, then tells the TUI to refresh."""
-    connect_all(audio_mgr, CONTROLLER_OUTPUT, OUTPUT_DEVICES, COMBINED_OUTPUT_SINK)
+    connect_and_combine_all(audio_mgr, CONTROLLER_OUTPUT, OUTPUT_DEVICES, COMBINED_OUTPUT_SINK)
     get_active_menu().update_config(tui_config())
     return "Connect and combine complete!"
 
@@ -33,18 +33,18 @@ def tui_factory_reset():
 def tui_config():
     config = build_app_config(
         audio_mgr,
-        tui_connect_all,
+        tui_connect_and_combine_all,
         tui_factory_reset,
-        cleanup_modules,
-        bt_remove_devices,
+        unload_audio_modules,
+        bluetoothctl_remove_devices,
         delete_speaker_state_file
     )
     return config
 
 # START TERMINAL USER INTERFACE
 def tui():
-    if check_if_combined(audio_mgr.combined_sink_name) and not audio_mgr.speakers:
-        audio_mgr.speakers = build_speakers()
+    if is_combined_sink_active(audio_mgr.combined_sink_name) and not audio_mgr.speakers:
+        audio_mgr.speakers = build_speaker_list()
         audio_mgr.save_state()
     start_app(title="OPEN SPEAKER CONNECT", menu_config=tui_config())
 

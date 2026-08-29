@@ -1,4 +1,4 @@
-def load_env(path="./.env"):
+def load_settings(path="./.env"):
     env = {}
     with open(path) as f:
         for line in f:
@@ -9,7 +9,7 @@ def load_env(path="./.env"):
             env[k.strip()] = v.strip()
     return env
 
-env = load_env()
+env = load_settings()
 
 # BLUETOOTH HARDWARE MAC FOR AUDIO OUTPUT (SPEAKER DEVICES)
 CONTROLLER_OUTPUT = env["CONTROLLER_OUTPUT"]

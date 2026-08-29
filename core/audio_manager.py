@@ -1,7 +1,7 @@
 import os
 import json
 import time
-from core.audio_sinks import build_speakers, combine_speakers, cleanup_modules, BluetoothSpeaker
+from core.audio_sinks import build_speaker_list, combine_speakers, unload_audio_modules, BluetoothSpeaker
 from core.pactl import pactl
 from core.load_env import COMBINED_OUTPUT_SINK
 
@@ -12,9 +12,9 @@ class AudioManager:
     def __init__(self):
         self.speakers = []
         self.combined_sink_name = COMBINED_OUTPUT_SINK
-        self.load_state()
+        self.restore_state()
 
-    def save_state(self):
+    def persist_state(self):
         data = {
             "combined_sink_name": self.combined_sink_name,
             "speakers": [spk.to_dict() for spk in self.speakers]
@@ -23,7 +23,7 @@ class AudioManager:
             json.dump(data, f, indent=4)
         print("Speaker configuration saved to disk.")
 
-    def load_state(self):
+    def restore_state(self):
         if not os.path.exists(STATE_FILE):
             return False
 
@@ -39,9 +39,9 @@ class AudioManager:
             return False
 
     def setup_audio(self):
-        cleanup_modules()
+        unload_audio_modules()
         self.speakers = combine_speakers(self.combined_sink_name)
-        self.save_state()
+        self.persist_state()
         print(f"Initialized & saved {len(self.speakers)} speakers.")
 
     def set_master_volume(self, level: int):

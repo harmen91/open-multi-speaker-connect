@@ -1,13 +1,13 @@
 # use_cases.py
 import time
-from core.bt_connect import bluetooth_connect_speakers, check_if_all_connected, bt_scan_stop_all
-from core.audio_sinks import combine_speakers, cleanup_modules, check_if_combined
+from core.bt_connect import bluetooth_connect_speakers, all_connected, bluetoothctl_scan_stop
+from core.audio_sinks import combine_speakers, unload_audio_modules, is_combined_sink_active
 from core.audio_manager import AudioManager
 
 
 ### THIS FILE HOLDS MIXED FUNCTIONALITY FROM CORE FOR BOTH WEB AND TUI APPS TO UTILIZE IN MAIN
 
-def connect_all(
+def connect_and_combine_all(
     audio_mgr: AudioManager,
     controller_output: str,
     output_devices: list,
@@ -30,14 +30,14 @@ def connect_all(
     # This sleep is a core concern (PipeWire sink reliability), so it stays here.
     time.sleep(5)
 
-    print(bt_scan_stop_all)
+    print(bluetoothctl_scan_stop)
     print("#################### BLUETOOTH BACKGROUND SCAN OFF ######################")
 
     if all_connected:
-        if not check_if_combined(combined_sink_name):
-            cleanup_modules()
+        if not is_combined_sink_active(combined_sink_name):
+            unload_audio_modules()
             audio_mgr.speakers = combine_speakers(combined_sink_name)
-            audio_mgr.save_state()
+            audio_mgr.persist_state()
         else:
             print(f"Already combined as {combined_sink_name}")
     else:

@@ -5,7 +5,7 @@ def _wrap_set_latency(speaker, audio_mgr):
     def action(latency_ms: int):
         result = speaker.set_latency(latency_ms)
         # Save happens AFTER the action returns, without blocking the UI
-        threading.Thread(target=audio_mgr.save_state, daemon=True).start()
+        threading.Thread(target=audio_mgr.persist_state, daemon=True).start()
         return result
     return action
 
@@ -44,7 +44,7 @@ def _wrap_master_volume(audio_mgr):
         return result
     return action
 
-def build_app_config(audio_mgr, connect_all_fn, factory_reset_fn, cleanup_modules_fn, unpair_fn, delete_speaker_state_file_fn):
+def build_app_config(audio_mgr, connect_all_fn, factory_reset_fn, cleanup_modules_fn, bluetoothctl_remove_devices_fn, delete_speaker_state_file_fn):
     speaker_controls = {}
     for spk in audio_mgr.speakers:
         speaker_controls[f"Speaker: {spk.name}"] = {
@@ -65,7 +65,7 @@ def build_app_config(audio_mgr, connect_all_fn, factory_reset_fn, cleanup_module
         "System": {
             "Full Factory Reset": factory_reset_fn,
             "Unload Modules": cleanup_modules_fn,
-            "Unpair Bluetooth Devices": unpair_fn,
+            "Unpair Bluetooth Devices": bluetoothctl_remove_devices_fn,
             "Delete Speaker State JSON File": delete_speaker_state_file_fn,
         },
     }

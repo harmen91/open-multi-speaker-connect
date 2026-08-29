@@ -2,12 +2,12 @@
 import os
 import subprocess
 import time
-from core.bt_connect import check_if_all_connected
+from core.bt_connect import all_connected
 from core.speaker import BluetoothSpeaker
 from core.pactl import pactl
 
 # FUNC TO CLEANUP NULL, LOOPBACK AND COMBINE SINKS
-def cleanup_modules():
+def unload_audio_modules():
     commands = [
         "pactl list short modules | grep module-null-sink | awk '{print $1}' | xargs -r -n1 pactl unload-module",
         "pactl list short modules | grep module-loopback | awk '{print $1}' | xargs -r -n1 pactl unload-module",
@@ -18,8 +18,8 @@ def cleanup_modules():
 
 
 # CREATE DICTIONAIRY THAT MAPS BLUETOOTHCTL CONFIRMED CONNECTED DEVICES TO PACTL LIST SHORT SINKS
-def dict_mac_to_sink():
-    all_connected, connected_devices_list = check_if_all_connected(verbose=False) #UNPACKING TUPLE = BOOL, LIST OF [MAC]'s
+def map_mac_to_sink():
+    is_connected, connected_devices_list = all_connected(verbose=False) #UNPACKING TUPLE = BOOL, LIST OF [MAC]'s
     out = pactl("list short sinks")
     device_to_sink = {}
     for device in connected_devices_list:
@@ -34,10 +34,10 @@ def dict_mac_to_sink():
     return device_to_sink # DICTIONARY = {'MAC':{'SINK ID':'NAME'}}
 
 
-# FUNC TO BUILD LIST OF BLUETOOTH SPEAKER OBJECTS FROM EACH CONNECTED DEVICE IN DICT dict_mac_to_sink()
-def build_speakers():
+# FUNC TO BUILD LIST OF BLUETOOTH SPEAKER OBJECTS FROM EACH CONNECTED DEVICE IN DICT map_mac_to_sink()
+def build_speaker_list():
     bluetooth_speakers = []
-    for mac, info in dict_mac_to_sink().items():
+    for mac, info in map_mac_to_sink().items():
         sink_id = info["id"]
         device_name = info["name"]
         bluetooth_speakers.append(BluetoothSpeaker(mac=mac, name=device_name, sink_id=sink_id)) 
@@ -47,7 +47,7 @@ def build_speakers():
 
 def combine_speakers(name_combined_sink):
     # BUILD LIST OF SPEAKER OBJECTS
-    speakers = build_speakers()
+    speakers = build_speaker_list()
 
     # CALL CREATE_NULL_SINK METHOD ON EACH SPEAKER OBJECT, ADD SMALL DELAY
     for speaker in speakers:
@@ -83,7 +83,7 @@ def combine_speakers(name_combined_sink):
 ### >>> !! <<< 
 ## IF NOT COMBINED, BUT CONNECTED > SHOULD REMOVE SINK AND ALL CORRESPONDING NULLSINKS AND TRY AGAIN
 ### WORK IN PROGRESS ####
-def check_if_combined(name_combined_sink):
+def is_combined_sink_active(name_combined_sink):
     out = pactl("list short sinks")
     # Check each line's second column (the sink name)
     for line in out.splitlines():
