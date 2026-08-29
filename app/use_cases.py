@@ -30,7 +30,7 @@ def connect_and_combine_all(
     # This sleep is a core concern (PipeWire sink reliability), so it stays here.
     time.sleep(5)
 
-    print(bluetoothctl_scan_stop())
+    bluetoothctl_scan_stop()
     print("#################### BLUETOOTH BACKGROUND SCAN OFF ######################")
 
     if all_connected:

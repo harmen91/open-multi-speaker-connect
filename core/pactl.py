@@ -1,4 +1,3 @@
-import os
 import subprocess
 
 # FUNCTION TO INTERACT WITH pactl

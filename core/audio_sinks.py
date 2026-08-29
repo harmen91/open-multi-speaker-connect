@@ -1,6 +1,4 @@
 #!/usr/bin/env python3
-import os
-import subprocess
 import time
 from core.bluetoothctl import all_connected
 from core.speaker import BluetoothSpeaker

@@ -7,7 +7,6 @@ from core.load_env import CONTROLLER_INPUT, CONTROLLER_OUTPUT, INPUT_DEVICES, OU
 # SINGLE CALL TO BLUETOOTHCTL, WAIT FOR OUTPUT, OR TERMINATE AFTER FIXED TIMEOUT
 def bluetoothctl_run(args, timeout=5):
     try:
-        timeout = timeout
         completed_process = subprocess.run(
             ["bluetoothctl"] + args.split(),
             timeout=timeout,
