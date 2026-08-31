@@ -1,3 +1,5 @@
+(screenshots/osmcv1.png)
+
 # Open Multi Speaker Connect (WIP)
 
 **Status: work in progress, not stable.**
