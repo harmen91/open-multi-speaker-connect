@@ -73,16 +73,18 @@ def build_app_config(audio_mgr, connect_all_fn, factory_reset_fn, unload_modules
  
     ## THIS RETURN VALUE IS THE TOP-LEVEL MENU CONFIG: CONNECT/COMBINE, PER-SPEAKER CONTROLS, MASTER VOLUME, AND SYSTEM ACTIONS
     return {
-        "BLUETOOTHCTL Connect All & Combine": connect_all_fn,
-        "Speaker Controls": speaker_controls if speaker_controls else {
+        "Setup": {
+            "Auto connect & combine": connect_all_fn,
+        },
+        "Speaker controls": speaker_controls if speaker_controls else {
             "No speakers active (Run Setup)": lambda: "Run Audio Setup first."
         },
-        "Master Volume (0-100)": _wrap_master_volume(audio_mgr),
+        "Master volume (0-100)": _wrap_master_volume(audio_mgr),
         "System": {
-            "Full Factory Reset": factory_reset_fn,
-            "Unload Modules": unload_modules_fn,
-            "Unpair Bluetooth Devices": bluetoothctl_remove_devices_fn,
-            "Delete Speaker State JSON File": delete_speaker_state_file_fn,
+            "Full factory reset": factory_reset_fn,
+            "Unload pactl modules": unload_modules_fn,
+            "Unpair bluetooth devices": bluetoothctl_remove_devices_fn,
+            "Delete speaker state JSON file": delete_speaker_state_file_fn,
         },
     }
  

@@ -25,6 +25,36 @@ def get_active_menu():
 def log(msg):
     LOG_QUEUE.put(str(msg))
 
+## THIS CONSTANT STORES THE ASCII ART BANNER RENDERED ACROSS THE TOP OF THE TUI ON STARTUP
+BANNER = r"""
+                                                                                       
+    ██  ██     ▄▄▄▄▄    ▄▄▄▄▄▄▄ ▄▄▄      ▄▄▄  ▄▄▄▄▄▄▄       ██  ██   ▄▄▄▄  ▄▄▄▄   ▄▄▄▄ 
+   ██  ██    ▄███████▄ █████▀▀▀ ████▄  ▄████ ███▀▀▀▀▀      ██  ██    ▀███  ███▀ ▄█████ 
+  ██  ██     ███   ███  ▀████▄  ███▀████▀███ ███          ██  ██      ███  ███     ███ 
+ ██  ██      ███▄▄▄███    ▀████ ███  ▀▀  ███ ███         ██  ██       ███▄▄███     ███ 
+██  ██        ▀█████▀  ███████▀ ███      ███ ▀███████   ██  ██         ▀████▀ ██   ███ 
+                                                                                       
+                                                                                       
+"""
+
+## THIS FUNCTION RENDERS THE BANNER TEXT INTO ITS OWN WINDOW, CLIPPING EACH LINE TO THE WINDOW'S WIDTH SO NARROW TERMINALS DON'T CRASH CURSES
+def _draw_banner(win, banner=BANNER):
+    win.erase()
+    max_y, max_x = win.getmaxyx()
+ 
+    ## THIS VARIABLE HOLDS THE BANNER SPLIT INTO INDIVIDUAL LINES, WITH LEADING/TRAILING BLANK LINES STRIPPED
+    lines = banner.strip("\n").splitlines()
+ 
+    for i, line in enumerate(lines):
+        if i >= max_y:
+            break
+        # Clip to max_x - 1 so we never write into the window's bottom-right corner cell (curses raises on that)
+        win.addstr(i, 0, line[:max_x - 1])
+ 
+    win.refresh()
+ 
+
+
 
 ## THIS CLASS REPRESENTS A SINGLE ENTRY IN A MENU HOLDING ITS DISPLAY LABEL, ITS ACTION CALLBACK OR SUBMENU, AND EXECUTION SETTINGS
 class MenuItem:
@@ -269,33 +299,47 @@ def build_menu(title, config):
     return Menu(title, items)
 
 
-## THIS FUNCTION IS THE TOP-LEVEL PUBLIC LAUNCHER THAT SPLITS THE TERMINAL SCREEN INTO TOP AND BOTTOM PANELS AND RUNS THE CURSES EVENT LOOP
-def start_app(title="Main Menu", menu_config=None):
+## THIS FUNCTION IS THE TOP-LEVEL PUBLIC LAUNCHER THAT SPLITS THE TERMINAL SCREEN INTO A BANNER, MENU, AND LOG PANEL AND RUNS THE CURSES EVENT LOOP
+def start_app(title="Main Menu", menu_config=None, banner=BANNER):
     global ACTIVE_APP
     if menu_config is None:
         menu_config = {}
-
+ 
     nav_info = " || Hit ESC to go back. Press Q to quit."
     ACTIVE_APP = build_menu(f"{title} {nav_info}", menu_config)
-
+ 
     ## THIS INTERNAL WRAPPER FUNCTION CREATES AND CONFIGURES THE CURSES WINDOW OBJECTS AND STARTS THE MAIN EVENT LOOP
     def _main(stdscr):
         curses.curs_set(0)
         max_y, max_x = stdscr.getmaxyx()
-
-        ## THIS SPLITS THE TERMINAL INTO A TOP FIXED WINDOW FOR THE MENU AND A BOTTOM SCROLLABLE WINDOW FOR LOG MESSAGES
+ 
+        ## THIS VARIABLE HOLDS THE NUMBER OF ROWS THE BANNER NEEDS, BASED ON HOW MANY LINES IT ACTUALLY CONTAINS
+        banner_lines = banner.strip("\n").splitlines()
+        banner_height = len(banner_lines)
+ 
+        ## THIS SPLITS THE TERMINAL INTO A FIXED TOP WINDOW FOR THE MENU AND A BOTTOM SCROLLABLE WINDOW FOR LOG MESSAGES
         menu_height = 12
-        menu_win = curses.newwin(menu_height, max_x, 0, 0)
+ 
+        ## THIS CHECK SKIPS THE BANNER ENTIRELY IF THE TERMINAL IS TOO SHORT TO FIT BANNER + MENU + AT LEAST ONE LOG LINE
+        if max_y < banner_height + menu_height + 1:
+            banner_height = 0
+ 
+        if banner_height > 0:
+            banner_win = curses.newwin(banner_height, max_x, 0, 0)
+            _draw_banner(banner_win, banner)
+ 
+        menu_win = curses.newwin(menu_height, max_x, banner_height, 0)
         menu_win.keypad(True)
-
-        log_height = max_y - menu_height
-        log_win = curses.newwin(log_height, max_x, menu_height, 0)
+ 
+        log_height = max_y - menu_height - banner_height
+        log_win = curses.newwin(log_height, max_x, banner_height + menu_height, 0)
         log_win.scrollok(True)
-
+ 
         log("System initialized. Ready.")
         ACTIVE_APP.run(menu_win, log_win)
-
+ 
     curses.wrapper(_main)
+
 
 
 ################################

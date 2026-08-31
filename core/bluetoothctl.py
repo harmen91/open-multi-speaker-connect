@@ -2,7 +2,13 @@ import subprocess
 import threading
 import queue
 import time
+import re
 from core.load_env import CONTROLLER_INPUT, CONTROLLER_OUTPUT, INPUT_DEVICES, OUTPUT_DEVICES
+
+# STRIP COLOR CODES FROM PIPED OUTPUT
+ANSI_ESCAPE_RE = re.compile(r'\x1b\[[0-9;]*m')
+def strip_ansi(line: str) -> str:
+    return ANSI_ESCAPE_RE.sub('', line)
 
 # SINGLE CALL TO BLUETOOTHCTL, WAIT FOR OUTPUT, OR TERMINATE AFTER FIXED TIMEOUT
 def bluetoothctl_run(args, timeout=5):
@@ -57,9 +63,10 @@ def bluetoothctl_scan_start():
 
     def read_output():
         for line in scan_process.stdout:
-            line = line.rstrip()       
-            print(line) # >>>>>>>>> DISABLE THIS IN THE FUTURE <<<<<<<<<<<<
-            scan_queue.put(line)
+            line = line.rstrip()    
+            clean = strip_ansi(line)   
+            print(clean) # >>>>>>>>> DISABLE THIS IN THE FUTURE <<<<<<<<<<<<
+            scan_queue.put(clean)
     threading.Thread(target=read_output, daemon=True).start()
 
     return scan_process

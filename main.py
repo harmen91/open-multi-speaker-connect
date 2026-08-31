@@ -45,7 +45,7 @@ def tui():
     if is_combined_sink_active(audio_mgr.combined_sink_name) and not audio_mgr.speakers:
         audio_mgr.speakers = build_speaker_list()
         audio_mgr.persist_state()
-    start_app(title="OPEN SPEAKER CONNECT", menu_config=tui_config())
+    start_app(title="OPEN SPEAKER MULTI CONNECT", menu_config=tui_config())
 
 # START WEB USER INTERFACE
 def web():
