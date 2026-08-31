@@ -1,4 +1,4 @@
-(./screenshots/osmcv1.png)
+<img src="./screenshots/osmcv1.png">
 
 # Open Multi Speaker Connect (WIP)
 
