@@ -1,7 +1,5 @@
 <img src="./screenshots/osmcv1.png">
 
-# Open Multi Speaker Connect (WIP)
-
 **Status: work in progress, not stable.**
 
 A Python CLI tool for Linux (PipeWire + BlueZ) that connects multiple Bluetooth speakers at once and combines them into a single, synced audio output with per-speaker latency calibration.
