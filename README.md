@@ -27,12 +27,12 @@ The project is split into four layers:
 │  main.py             (composition root)     │
 │  Instantiates AudioManager, wires TUI       │
 ├─────────────────────────────────────────────┤
-│  app/                 (orchestration)       │
+│  app/                (orchestration)        │
 │  use_cases.py  → connect_and_combine_all    │
 │  workflows.py  → factory_reset,             │
 │                   delete_speaker_state_file │
 ├─────────────────────────────────────────────┤
-│  core/                 (domain layer)       │
+│  core/               (domain layer)         │
 │  bluetoothctl.py → BlueZ / bluetoothctl     │
 │  audio_sinks.py  → PipeWire / pactl         │
 │  speaker.py      → BluetoothSpeaker         │
