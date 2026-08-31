@@ -23,28 +23,28 @@ Bluetooth speakers introduce inconsistent latency compared to wired output. Comb
 The project is split into four layers:
 
 ```
-┌───────────────────────────────────────────┐
-│  main.py             (composition root)   │
-│  Instantiates AudioManager, wires TUI      │
-├───────────────────────────────────────────┤
-│  app/                 (orchestration)      │
-│  use_cases.py  → connect_and_combine_all   │
-│  workflows.py  → factory_reset,            │
-│                   delete_speaker_state_file│
-├───────────────────────────────────────────┤
-│  core/                 (domain layer)      │
-│  bluetoothctl.py → BlueZ / bluetoothctl    │
-│  audio_sinks.py  → PipeWire / pactl        │
-│  speaker.py      → BluetoothSpeaker        │
-│  audio_manager.py→ state (de)serialize     │
-│  pactl.py        → pactl subprocess wrapper│
-│  load_env.py     → .env parser             │
-├───────────────────────────────────────────┤
-│  interfaces/          (presentation layer) │
-│  tui/engine.py    → curses menu engine     │
-│  tui/presenter.py → menu config builder    │
-│  web/             → (not built yet)        │
-└───────────────────────────────────────────┘
+┌─────────────────────────────────────────────┐
+│  main.py             (composition root)     │
+│  Instantiates AudioManager, wires TUI       │
+├─────────────────────────────────────────────┤
+│  app/                 (orchestration)       │
+│  use_cases.py  → connect_and_combine_all    │
+│  workflows.py  → factory_reset,             │
+│                   delete_speaker_state_file │
+├─────────────────────────────────────────────┤
+│  core/                 (domain layer)       │
+│  bluetoothctl.py → BlueZ / bluetoothctl     │
+│  audio_sinks.py  → PipeWire / pactl         │
+│  speaker.py      → BluetoothSpeaker         │
+│  audio_manager.py→ state (de)serialize      │
+│  pactl.py        → pactl subprocess wrapper │
+│  load_env.py     → .env parser              │
+├─────────────────────────────────────────────┤
+│  interfaces/          (presentation layer)  │
+│  tui/engine.py    → curses menu engine      │
+│  tui/presenter.py → menu config builder     │
+│  web/             → (not built yet)         │
+└─────────────────────────────────────────────┘
 ```
 
 ### How the audio pipeline works
@@ -52,15 +52,15 @@ The project is split into four layers:
 When you run **Connect All & Combine**, the tool builds this PipeWire graph for every connected speaker:
 
 ```
-┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+┌──────────────────┐     ┌──────────────────┐     ┌─────────────────┐
 │  module-null-    │────→│  module-loopback │────→│  Real Bluetooth │
-│  sink (delayed)  │     │  latency_msec=X   │     │  speaker sink   │
-└─────────────────┘     └──────────────────┘     └─────────────────┘
+│  sink (delayed)  │     │  latency_msec=X  │     │  speaker sink   │
+└──────────────────┘     └──────────────────┘     └─────────────────┘
          │
-         └─ All null sinks are slaves of ─→ ┌─────────────────────┐
-                                             │  module-combine-sink │
-                                             │  (default output)    │
-                                             └─────────────────────┘
+         └─ All null sinks are slaves of ─→ ┌──────────────────────┐
+                                            │  module-combine-sink │
+                                            │  (default output)    │
+                                            └──────────────────────┘
 ```
 
 1. **Null sink** — A virtual sink that receives the combined audio stream.
