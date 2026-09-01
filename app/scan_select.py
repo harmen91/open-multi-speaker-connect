@@ -3,8 +3,8 @@ import queue
 import time
 import re
 
+## BUILDS A LIST OF NEWLY DISCOVERED DEVICES 
 def scan_to_list():
-
 
     pattern = r"\b(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}\b"
     new_devices_list = []
@@ -37,7 +37,7 @@ def scan_to_list():
                             device_name
                             ))
             time.sleep(1)
-            print(f"TESSTTT>>>>>>      new_devices_list}")
+            print(f"TESSTTT>>>>>>      {new_devices_list}")
         except queue.Empty:
             print(f"Waiting for more devices to appear..") #waiting for new entry in queue to appear
         
