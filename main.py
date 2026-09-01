@@ -8,9 +8,12 @@ from core.audio_sinks import unload_audio_modules, is_combined_sink_active, buil
 
 from app.workflows import factory_reset, delete_speaker_state_file
 from app.use_cases import connect_and_combine_all
+from app.scan_select import scan_to_list
 
 from interfaces.tui.presenter import build_app_config
 from interfaces.tui.engine import start_app, log, non_blocking, get_active_menu
+
+
 
 # INSTANTIATE AUDIOMANAGER // LOADS JSON STATE FILE AND BUILDS SPEAKER OBJECTS FROM SPEAKER CLASS
 audio_mgr = AudioManager()
@@ -51,6 +54,14 @@ def tui():
 def web():
     print("I have to be built still..")
 
+# TESTING AREA
+def test():
+    print("Testing environment:")
+    audio_mgr.persist_state()
+    scan_to_list()
+    
+
+
 # DECIDE WHICH APP TO LAUNCH
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--tui":
@@ -61,5 +72,8 @@ if __name__ == "__main__":
     elif len(sys.argv) > 1 and sys.argv[1] == "--web":
         ## LAUNCH WEBAPP
         web()
+    elif len(sys.argv) > 1 and sys.argv[1] == "--test":
+        ## TESTING ENVIRNOMENT
+        test()
     else:
         print("please run this script with either --tui or --web arguments")
