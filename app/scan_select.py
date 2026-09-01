@@ -3,6 +3,8 @@ import queue
 import time
 import re
 
+#test
+
 ## BUILDS A LIST OF NEWLY DISCOVERED DEVICES 
 def scan_to_list():
 
