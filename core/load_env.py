@@ -1,3 +1,7 @@
+import json
+import os
+
+
 def load_settings(path="./.env"):
     env = {}
     with open(path) as f:
@@ -9,19 +13,22 @@ def load_settings(path="./.env"):
             env[k.strip()] = v.strip()
     return env
 
+
 env = load_settings()
 
-# BLUETOOTH HARDWARE MAC FOR AUDIO OUTPUT (SPEAKER DEVICES)
 CONTROLLER_OUTPUT = env["CONTROLLER_OUTPUT"]
-# BLUETOOTH HARDWARE MAC FOR AUDIO INPUT (PHONE, COMPUTER, AUDIO STREAM, ETC)
-# USEFULL FOR HAVING TWO SEPERATE BLUETOOTH CONTROLERS HANDLE INCOMING AND OUTGOING 
-# BLUETOOTH STREAMS FOR IMPROVED PERFORMANCE AND REDUCED LATENCY
 CONTROLLER_INPUT = env["CONTROLLER_INPUT"]
-
-# STORED MAC ADDRESSES OF OUTPUT DEVICES IN ENV
-OUTPUT_DEVICES = [v for k, v in env.items() if k.startswith("OUTPUT_DEVICE")] 
-
-# STORED MAC ADDRESSES OF INPUT DEVICES IN ENV
-INPUT_DEVICES = [v for k, v in env.items() if k.startswith("INPUT_DEVICE")] 
-
 COMBINED_OUTPUT_SINK = env["COMBINED_OUTPUT_SINK"].replace(" ", "")
+
+INPUT_DEVICES = [v for k, v in env.items() if k.startswith("INPUT_DEVICE")]
+
+# Load from devices.json if it exists, otherwise fall back to .env
+DEVICES_JSON_PATH = "./selected_devices.json"
+
+if os.path.isfile(DEVICES_JSON_PATH):
+    with open(DEVICES_JSON_PATH, "r", encoding="utf-8") as f:
+        devices_data = json.load(f)
+        # Assuming keys are MAC addresses: {"AA:BB:CC:DD:EE:FF": "Device Name"}
+        OUTPUT_DEVICES = list(devices_data.keys())
+else:
+    OUTPUT_DEVICES = [v for k, v in env.items() if k.startswith("OUTPUT_DEVICE")]

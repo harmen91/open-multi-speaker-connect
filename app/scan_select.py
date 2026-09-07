@@ -1,3 +1,4 @@
+import json
 import queue
 import re
 import time
@@ -83,14 +84,9 @@ class BluetoothScanner:
     def deselect_device(self, mac):
         self.selected_devices.discard(mac)
 
-    def save_selected_devices(self):
-        selected = sorted(self.selected_devices)
-
-        print("Selected MAC addresses:")
-        for mac in selected:
-            print(mac)
-
-        return selected
+    def save_devices_to_json(self, filepath="selected_devices.json"):
+        with open(filepath, "w", encoding="utf-8") as f:
+            json.dump(self.devices, f, indent=4)
 
 if __name__ == "__main__":
     scanner = BluetoothScanner(scan_queue)
@@ -107,4 +103,4 @@ if __name__ == "__main__":
         scanner.select_device(first_mac)
 
     print("\nSelected devices:")
-    scanner.save_selected_devices()
+    scanner.save_devices_to_json()
