@@ -6,6 +6,11 @@ def delete_speaker_state_file():
     if os.path.exists("speaker_state.json"):
         os.remove("speaker_state.json")
 
+def delete_selected_devices_state_file():
+    if os.path.exists("selected_devices.json"):
+        os.remove("selected_devices.json")
+
+
 def factory_reset():
     bluetoothctl_remove_devices()
     unload_audio_modules()

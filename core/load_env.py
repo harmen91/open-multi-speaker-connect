@@ -25,10 +25,11 @@ INPUT_DEVICES = [v for k, v in env.items() if k.startswith("INPUT_DEVICE")]
 # Load from devices.json if it exists, otherwise fall back to .env
 DEVICES_JSON_PATH = "./selected_devices.json"
 
-if os.path.isfile(DEVICES_JSON_PATH):
-    with open(DEVICES_JSON_PATH, "r", encoding="utf-8") as f:
-        devices_data = json.load(f)
-        # Assuming keys are MAC addresses: {"AA:BB:CC:DD:EE:FF": "Device Name"}
-        OUTPUT_DEVICES = list(devices_data.keys())
-else:
-    OUTPUT_DEVICES = [v for k, v in env.items() if k.startswith("OUTPUT_DEVICE")]
+def get_output_devices():
+    if os.path.isfile(DEVICES_JSON_PATH):
+        with open(DEVICES_JSON_PATH, "r", encoding="utf-8") as f:
+            return list(json.load(f).keys())
+
+    return [v for k, v in env.items() if k.startswith("OUTPUT_DEVICE")]
+
+OUTPUT_DEVICES = get_output_devices()

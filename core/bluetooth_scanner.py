@@ -2,12 +2,16 @@ import json
 import queue
 import re
 import time
+import os
 
 from core.bluetoothctl import (
     bluetoothctl_run,
     bluetoothctl_scan_start,
     scan_queue,
+    bluetoothctl_scan_stop
 )
+
+from core import load_env
 
 class BluetoothScanner:
     MAC_PATTERN = re.compile(
@@ -19,10 +23,12 @@ class BluetoothScanner:
         self.devices = {}
         self.known_devices = {}
         self.selected_devices = set()
+        self.save_devices = {}
 
     def scan(self, timeout=10):
         self.devices.clear()
         self.selected_devices.clear()
+        self.save_devices.clear()
 
         self.load_known_devices()
 
@@ -65,6 +71,7 @@ class BluetoothScanner:
 
     def load_known_devices(self):
         self.known_devices.clear()
+        time.sleep(1)
 
         output = bluetoothctl_run("devices").stdout
 
@@ -76,17 +83,31 @@ class BluetoothScanner:
 
             self.known_devices[parts[1].upper()] = parts[2]
 
+    def toggle_device(self, mac):
+        """Toggles device selection state. Returns True if now selected, False otherwise."""
+        if mac not in self.devices:
+            return False
 
-    def select_device(self, mac):
-        if mac in self.devices:
+        if mac in self.selected_devices:
+            self.selected_devices.remove(mac)
+            self.save_devices.pop(mac, None)
+            return False
+        else:
             self.selected_devices.add(mac)
-
-    def deselect_device(self, mac):
-        self.selected_devices.discard(mac)
+            self.save_devices[mac] = self.devices[mac]
+            return True
 
     def save_devices_to_json(self, filepath="selected_devices.json"):
+        if os.path.exists("selected_devices.json"):
+            os.remove("selected_devices.json")
         with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(self.devices, f, indent=4)
+            json.dump(self.save_devices, f, indent=4)
+        
+        load_env.OUTPUT_DEVICES = load_env.get_output_devices()
+        bluetoothctl_scan_stop()
+        bluetoothctl_run("power off")
+        time.sleep(1)
+        
 
 if __name__ == "__main__":
     scanner = BluetoothScanner(scan_queue)

@@ -1,4 +1,5 @@
-from interfaces.tui.engine import log
+from interfaces.tui.engine import log, MenuItem
+from interfaces.tui.device_menu import DeviceSelectionMenu
 import threading
  
 ## THIS FACTORY FUNCTION BUILDS A MENU ACTION CLOSURE THAT APPLIES A NEW LATENCY TO A SPEAKER AND PERSISTS STATE IN THE BACKGROUND
@@ -58,8 +59,18 @@ def _wrap_master_volume(audio_mgr):
     return action
  
 ## THIS FUNCTION ASSEMBLES THE FULL NESTED DICTIONARY CONFIG CONSUMED BY interfaces/tui/engine.py'S build_menu() TO CONSTRUCT THE TUI
-def build_app_config(audio_mgr, connect_all_fn, factory_reset_fn, unload_modules_fn, bluetoothctl_remove_devices_fn, delete_speaker_state_file_fn):
-    ## THIS VARIABLE HOLDS THE SUBMENU CONFIG FOR EACH CONNECTED SPEAKER, KEYED BY "Speaker: <name>"
+from interfaces.tui.device_menu import DeviceSelectionMenu
+
+def build_app_config(
+    audio_mgr,
+    device_selection_menu,
+    connect_all_fn,
+    factory_reset_fn,
+    unload_modules_fn,
+    bluetoothctl_remove_devices_fn,
+    delete_speaker_state_file_fn,
+    delete_selected_devices_state_file_fn,
+):
     speaker_controls = {}
     for spk in audio_mgr.speakers:
         speaker_controls[f"Speaker: {spk.name}"] = {
@@ -71,9 +82,9 @@ def build_app_config(audio_mgr, connect_all_fn, factory_reset_fn, unload_modules
             "Mute Off": spk.mute_off,
         }
  
-    ## THIS RETURN VALUE IS THE TOP-LEVEL MENU CONFIG: CONNECT/COMBINE, PER-SPEAKER CONTROLS, MASTER VOLUME, AND SYSTEM ACTIONS
     return {
         "Setup": {
+            "Scan & Select Bluetooth Devices": device_selection_menu,
             "Auto connect & combine": connect_all_fn,
         },
         "Speaker controls": speaker_controls if speaker_controls else {
@@ -85,6 +96,7 @@ def build_app_config(audio_mgr, connect_all_fn, factory_reset_fn, unload_modules
             "Unload pactl modules": unload_modules_fn,
             "Unpair bluetooth devices": bluetoothctl_remove_devices_fn,
             "Delete speaker state JSON file": delete_speaker_state_file_fn,
+            "Delete selected devices JSON file": delete_selected_devices_state_file_fn,
         },
     }
  

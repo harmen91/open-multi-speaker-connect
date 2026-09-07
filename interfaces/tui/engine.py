@@ -288,7 +288,10 @@ def prompt_confirm(win, prompt, y=4):
 def build_menu(title, config):
     items = []
     for label, target in config.items():
-        if isinstance(target, dict):
+        if isinstance(target, Menu):
+            # Supports passing Menu instances (like DeviceSelectionMenu) directly
+            items.append(MenuItem(label, submenu=target))
+        elif isinstance(target, dict):
             submenu = build_menu(label, target)
             items.append(MenuItem(label, submenu=submenu))
         elif callable(target):

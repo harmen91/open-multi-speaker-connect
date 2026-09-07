@@ -1,25 +1,35 @@
 import sys
 import builtins
 
-from core.load_env import CONTROLLER_INPUT, CONTROLLER_OUTPUT, INPUT_DEVICES, OUTPUT_DEVICES, COMBINED_OUTPUT_SINK
+from core.load_env import CONTROLLER_INPUT, CONTROLLER_OUTPUT, INPUT_DEVICES, COMBINED_OUTPUT_SINK, get_output_devices
 from core.bluetoothctl import bluetooth_connect_speakers, bluetoothctl_remove_devices
 from core.audio_manager import AudioManager
 from core.audio_sinks import unload_audio_modules, is_combined_sink_active, build_speaker_list
+from core.bluetooth_scanner import BluetoothScanner, scan_queue
 
-from app.workflows import factory_reset, delete_speaker_state_file
+from app.workflows import factory_reset, delete_speaker_state_file, delete_selected_devices_state_file
 from app.use_cases import connect_and_combine_all
 
 from interfaces.tui.presenter import build_app_config
 from interfaces.tui.engine import start_app, log, non_blocking, get_active_menu
+from interfaces.tui.device_menu import DeviceSelectionMenu
 
+import core.load_env
 
 
 # INSTANTIATE AUDIOMANAGER // LOADS JSON STATE FILE AND BUILDS SPEAKER OBJECTS FROM SPEAKER CLASS
 audio_mgr = AudioManager()
+# INSTANTIATE BLUETOOTHSCANNER_SELECTION_TOOL
+
+
 
 def tui_connect_and_combine_all():
     """Thin wrapper: runs the use case, then tells the TUI to refresh."""
-    connect_and_combine_all(audio_mgr, CONTROLLER_OUTPUT, OUTPUT_DEVICES, COMBINED_OUTPUT_SINK)
+    connect_and_combine_all(
+        audio_mgr, 
+        CONTROLLER_OUTPUT, 
+        core.load_env.OUTPUT_DEVICES, 
+        COMBINED_OUTPUT_SINK)
     get_active_menu().update_config(tui_config())
     return "Connect and combine complete!"
 
@@ -30,17 +40,30 @@ def tui_factory_reset():
     get_active_menu().update_config(tui_config())
     return "Factory reset complete."
 
+
+
 ## PASS IN FUNCTIONS TO BE USED WITHIN TUI > interfaces/tui/presenter.py 
 def tui_config():
-    config = build_app_config(
+    #submenu for scanner
+    scanner = BluetoothScanner(scan_queue)
+    device_menu = DeviceSelectionMenu(scanner, on_saved=refresh_tui_after_scan)
+
+    return build_app_config(
         audio_mgr,
+        device_menu,
         tui_connect_and_combine_all,
         tui_factory_reset,
         unload_audio_modules,
         bluetoothctl_remove_devices,
-        delete_speaker_state_file
+        delete_speaker_state_file,
+        delete_selected_devices_state_file,
     )
-    return config
+
+def refresh_tui_after_scan():
+    unload_audio_modules()
+    core.load_env.OUTPUT_DEVICES = get_output_devices()
+    get_active_menu().update_config(tui_config())
+
 
 # START TERMINAL USER INTERFACE
 def tui():
