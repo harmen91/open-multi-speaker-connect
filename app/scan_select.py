@@ -1,46 +1,110 @@
-from core.bluetoothctl import bluetoothctl_scan_start, scan_queue, bluetoothctl_run
 import queue
-import time
 import re
+import time
 
-#test
+from core.bluetoothctl import (
+    bluetoothctl_run,
+    bluetoothctl_scan_start,
+    scan_queue,
+)
 
-## BUILDS A LIST OF NEWLY DISCOVERED DEVICES 
-def scan_to_list():
+class BluetoothScanner:
+    MAC_PATTERN = re.compile(
+    r"(?:[0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}"
+    )
 
-    pattern = r"\b(?:[0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}\b"
-    new_devices_list = []
-    local_scan_lines = []
+    def __init__(self, scan_queue):
+        self.scan_queue = scan_queue
+        self.devices = {}
+        self.known_devices = {}
+        self.selected_devices = set()
+
+    def scan(self, timeout=10):
+        self.devices.clear()
+        self.selected_devices.clear()
+
+        self.load_known_devices()
+
+        while True:
+            try:
+                self.scan_queue.get_nowait()
+            except queue.Empty:
+                break
+
+        # Keep this exact sequence together.
+        bluetoothctl_run("power off")
+        bluetoothctl_run("power on")
+        bluetoothctl_scan_start()
+
+        deadline = time.monotonic() + timeout
+
+        while time.monotonic() < deadline:
+            try:
+                line = self.scan_queue.get(timeout=1)
+            except queue.Empty:
+                continue
+
+            match = self.MAC_PATTERN.search(line)
+
+            if not match:
+                continue
+
+            mac = match.group().upper()
+            parts = line.split(maxsplit=3)
+
+            if "[NEW] Device" in line:
+                name = parts[3] if len(parts) > 3 else "(unknown)"
+                self.devices[mac] = name
+
+            elif "[CHG] Device" in line and mac in self.known_devices:
+                self.devices[mac] = self.known_devices[mac]
 
 
-    while True:
-        try:
-            local_scan_lines.append(scan_queue.get_nowait())
-        except queue.Empty:
-            break
+        return self.devices.copy()
+
+    def load_known_devices(self):
+        self.known_devices.clear()
+
+        output = bluetoothctl_run("devices").stdout
+
+        for line in output.splitlines():
+            parts = line.split(maxsplit=2)
+
+            if len(parts) < 3 or parts[0] != "Device":
+                continue
+
+            self.known_devices[parts[1].upper()] = parts[2]
 
 
-    bluetoothctl_run("power off")
-    bluetoothctl_run("power on")
-    bluetoothctl_scan_start()
+    def select_device(self, mac):
+        if mac in self.devices:
+            self.selected_devices.add(mac)
 
- 
-    while True:
-        try:
-            line = scan_queue.get(timeout=1)
-            if re.search(pattern, line): 
-                found_mac = re.findall(pattern, line)
-                if found_mac not in    new_devices_list:
-                    if "[NEW] Device" in line: #only append "[NEW] Device AA:BB:CC:DD"
-                        device_mac = line.split(maxsplit=3)[2]
-                        device_name = line.split(maxsplit=3)[3]
-                        new_devices_list.append((
-                            device_mac,
-                            device_name
-                            ))
-            time.sleep(1)
-            print(f"TESSTTT>>>>>>      {new_devices_list}")
-        except queue.Empty:
-            print(f"Waiting for more devices to appear..") #waiting for new entry in queue to appear
-        
-    
+    def deselect_device(self, mac):
+        self.selected_devices.discard(mac)
+
+    def save_selected_devices(self):
+        selected = sorted(self.selected_devices)
+
+        print("Selected MAC addresses:")
+        for mac in selected:
+            print(mac)
+
+        return selected
+
+if __name__ == "__main__":
+    scanner = BluetoothScanner(scan_queue)
+
+    print("Starting scan...")
+    devices = scanner.scan(timeout=30)
+
+    print("\nDiscovered devices:")
+    for mac, name in devices.items():
+        print(f"{name} - {mac}")
+
+    if devices:
+        first_mac = next(iter(devices))
+        scanner.select_device(first_mac)
+
+    print("\nSelected devices:")
+    scanner.save_selected_devices()

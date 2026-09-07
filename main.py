@@ -8,7 +8,6 @@ from core.audio_sinks import unload_audio_modules, is_combined_sink_active, buil
 
 from app.workflows import factory_reset, delete_speaker_state_file
 from app.use_cases import connect_and_combine_all
-from app.scan_select import scan_to_list
 
 from interfaces.tui.presenter import build_app_config
 from interfaces.tui.engine import start_app, log, non_blocking, get_active_menu
@@ -57,8 +56,7 @@ def web():
 # TESTING AREA
 def test():
     print("Testing environment:")
-    audio_mgr.persist_state()
-    scan_to_list()
+
     
 
 
