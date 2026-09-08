@@ -2,9 +2,7 @@ import time
 from core.bluetoothctl import bluetooth_connect_speakers, all_connected, bluetoothctl_scan_stop
 from core.audio_sinks import combine_speakers, unload_audio_modules, is_combined_sink_active
 from core.audio_manager import AudioManager
- 
- 
-### THIS FILE HOLDS MIXED FUNCTIONALITY FROM CORE FOR BOTH WEB AND TUI APPS TO UTILIZE IN MAIN
+
  
 ## THIS FUNCTION IS THE TOP-LEVEL USE CASE THAT CONNECTS ALL SPEAKERS OVER BLUETOOTH AND THEN COMBINES THEM INTO ONE SYNCED SINK
 def connect_and_combine_all(

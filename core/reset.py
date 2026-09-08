@@ -15,6 +15,7 @@ def factory_reset():
     bluetoothctl_remove_devices()
     unload_audio_modules()
     delete_speaker_state_file()
+    delete_selected_devices_state_file()
 
 
 ################################

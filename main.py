@@ -6,15 +6,15 @@ from core.bluetoothctl import bluetooth_connect_speakers, bluetoothctl_remove_de
 from core.audio_manager import AudioManager
 from core.audio_sinks import unload_audio_modules, is_combined_sink_active, build_speaker_list
 from core.bluetooth_scanner import BluetoothScanner, scan_queue
-
-from app.workflows import factory_reset, delete_speaker_state_file, delete_selected_devices_state_file
-from app.use_cases import connect_and_combine_all
+from core.reset import factory_reset, delete_speaker_state_file, delete_selected_devices_state_file
+from core.connect_and_combine import connect_and_combine_all
+import core.load_env
 
 from interfaces.tui.presenter import build_app_config
 from interfaces.tui.engine import start_app, log, non_blocking, get_active_menu
 from interfaces.tui.device_menu import DeviceSelectionMenu
 
-import core.load_env
+
 
 
 # INSTANTIATE AUDIOMANAGER // LOADS JSON STATE FILE AND BUILDS SPEAKER OBJECTS FROM SPEAKER CLASS
