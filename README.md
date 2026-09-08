@@ -2,6 +2,8 @@
 
 **Status: work in progress, not stable.**
 
+**README FILE OUTDATED**
+
 A Python CLI tool for Linux (PipeWire + BlueZ) that connects multiple Bluetooth speakers at once and combines them into a single, synced audio output with per-speaker latency calibration.
 
 ## What it does
