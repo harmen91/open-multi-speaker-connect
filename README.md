@@ -29,11 +29,6 @@ The project is split into four layers:
 │  main.py             (composition root)     │
 │  Instantiates AudioManager, wires TUI       │
 ├─────────────────────────────────────────────┤
-│  app/                (orchestration)        │
-│  use_cases.py  → connect_and_combine_all    │
-│  workflows.py  → factory_reset,             │
-│                   delete_speaker_state_file │
-├─────────────────────────────────────────────┤
 │  core/               (domain layer)         │
 │  bluetoothctl.py → BlueZ / bluetoothctl     │
 │  audio_sinks.py  → PipeWire / pactl         │
@@ -184,8 +179,6 @@ Speaker objects (latency, volume, module IDs) are saved to `speaker_state.json` 
 
 ## Known limitations
 
-- **Manual MAC discovery** — No scanning UI yet; all addresses must be in `.env`.
-- **Hard-coded sleep** — `connect_and_combine_all()` sleeps 5 seconds after Bluetooth connection to give PipeWire time to create audio sinks. This is a reliability band-aid, not a proper readiness check.
 - **No web interface** — The `--web` flag prints a placeholder.
 - **Bluetooth reconnection** — If a speaker drops (battery dies, range loss), automatic reconnection is not yet robust.
 - **pactl error handling** — `pactl` failures are not always surfaced clearly to the TUI log panel.
@@ -196,10 +189,6 @@ Speaker objects (latency, volume, module IDs) are saved to `speaker_state.json` 
 ```
 open-multi-speaker-connect/
 ├── main.py                    # Entry point; composition root
-├── app/
-│   ├── __init__.py
-│   ├── use_cases.py           # connect_and_combine_all — Bluetooth + sink orchestration
-│   └── workflows.py           # factory_reset, delete_speaker_state_file
 ├── core/
 │   ├── __init__.py
 │   ├── audio_manager.py       # AudioManager — JSON state persistence, master volume

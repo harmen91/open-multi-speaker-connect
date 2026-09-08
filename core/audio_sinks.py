@@ -23,9 +23,13 @@ def map_mac_to_sink():
         device_upper = device.upper()
         device_underscored = device_upper.replace(":", "_")
         for line in out.splitlines():
+            fields = line.split()
+            # Skip lingering null-delayed sinks — they outlive disconnects and must never be mapped as a speaker's real sink
+            if len(fields) < 2 or fields[1].endswith("_null_delayed"):
+                continue
             line_upper = line.upper()
             if device_upper in line_upper or device_underscored in line_upper:
-                fields = line.split()
+                # fields = line.split()
                 device_to_sink[device] = {"id": fields[0], "name": fields[1]}
                 break
     return device_to_sink # DICTIONARY = {'MAC':{'SINK ID':'NAME'}}

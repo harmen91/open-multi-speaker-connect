@@ -1,8 +1,19 @@
 import time
 from core.bluetoothctl import bluetooth_connect_speakers, all_connected, bluetoothctl_scan_stop
-from core.audio_sinks import combine_speakers, unload_audio_modules, is_combined_sink_active
+from core.audio_sinks import combine_speakers, unload_audio_modules, is_combined_sink_active, map_mac_to_sink
 from core.audio_manager import AudioManager
 
+## THIS FUNCTION POLLS PACTL UNTIL EVERY CONNECTED MAC HAS A REAL (NON-NULL-DELAYED) SINK, OR THE TIMEOUT EXPIRES
+def wait_for_sinks(connected_list, timeout=10, interval=0.25):
+    deadline = time.monotonic() + timeout
+    mapped = map_mac_to_sink()
+    while time.monotonic() < deadline and not all(mac in mapped for mac in connected_list):
+        time.sleep(interval)
+        mapped = map_mac_to_sink()
+    missing = [mac for mac in connected_list if mac not in mapped]
+    if missing:
+        print(f"[wait_for_sinks] No sink appeared for: {missing}")
+    return mapped
  
 ## THIS FUNCTION IS THE TOP-LEVEL USE CASE THAT CONNECTS ALL SPEAKERS OVER BLUETOOTH AND THEN COMBINES THEM INTO ONE SYNCED SINK
 def connect_and_combine_all(
@@ -26,8 +37,8 @@ def connect_and_combine_all(
     print(connected_list)
     print("#################### FINISHED CONNECTING DEVICES ######################")
  
-    # This sleep is a core concern (PipeWire sink reliability), so it stays here.
-    time.sleep(5)
+    # Sinks must exist BEFORE the scan process is killed — scan_stop too early was the root cause of missing sinks
+    wait_for_sinks(connected_list)
  
     bluetoothctl_scan_stop()
     print("#################### BLUETOOTH BACKGROUND SCAN OFF ######################")
