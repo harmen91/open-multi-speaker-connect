@@ -12,7 +12,7 @@ A Python CLI tool for Linux (PipeWire + BlueZ) that connects multiple Bluetooth 
 - Retries connections until they succeed (Bluetooth pairing is flaky)
 - Maps connected devices to their PipeWire sink names via `pactl`
 - Creates a combined audio sink so all speakers play the same stream
-- Lets you tune per-speaker latency to correct sync drift between devices
+- Lets you tune per-speaker latency to correct latency issues between devices
 - Provides a TUI (terminal UI) for controlling volume, latency, and connection state
 - Persists speaker configuration (latency, volume) to a local JSON file
 
@@ -77,7 +77,8 @@ Latency changes at runtime (`BluetoothSpeaker.set_latency`) mute the speaker, te
 
 ## Configuration
 
-All hardware addresses must be entered manually. There is no automated device discovery yet.
+Discovery, selection, connection and combined sink creation can be done through the Setup menu.
+Hardware output addresses can also be entered manually. Automatic fall-back to a .env file in case the user does not want to rely on bluetooth discovery.
 
 ### Finding your hardware addresses
 
