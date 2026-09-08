@@ -11,6 +11,14 @@ def _wrap_set_latency(speaker, audio_mgr):
         threading.Thread(target=audio_mgr.persist_state, daemon=True).start()
         return result
     return action
+
+def _wrap_update_channel(speaker, audio_mgr):
+    def action(channel_str: str):
+        result = speaker.update_channel(channel_str)
+        # Save happens AFTER the action returns, without blocking the UI
+        threading.Thread(target=audio_mgr.persist_state, daemon=True).start()
+        return result
+    return action
  
 ## THIS FUNCTION RENDERS A TEXT-BASED VOLUME BAR STRING (E.G. "[====......] 40%") FOR LOGGING TO THE TUI
 def _volume_bar(name: str, level: int, width: int = 20) -> str:
@@ -75,6 +83,7 @@ def build_app_config(
     for spk in audio_mgr.speakers:
         speaker_controls[f"Speaker: {spk.name}"] = {
             "Set Latency (ms)": _wrap_set_latency(spk, audio_mgr),
+            "Set Channel (STEREO, FL, FR)": _wrap_update_channel(spk, audio_mgr),
             "Set Volume (0-100)": _wrap_speaker_volume(spk),
             "Volume Up 10%": _wrap_volume_up(spk),
             "Volume Down 10%": _wrap_volume_down(spk),

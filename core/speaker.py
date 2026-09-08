@@ -1,11 +1,14 @@
 import time
 from core.pactl import pactl
+from core.pwlink import pwlink
+from core.load_env import COMBINED_OUTPUT_SINK
 
 ## THIS CLASS REPRESENTS A SINGLE BLUETOOTH SPEAKER AND OWNS ITS PIPEWIRE NULL-SINK, LOOPBACK, LATENCY, VOLUME AND MUTE STATE
 # BLUETOOTH SPEAKER CLASS
 class BluetoothSpeaker:
     ## THIS CONSTRUCTOR INITIALIZES THE SPEAKER'S IDENTITY (MAC, NAME, SINK ID) AND ITS DEFAULT LATENCY, MODULE ID AND VOLUME STATE
-    def __init__(self, mac, name, sink_id, latency_ms=0, loopback_module_id=None, null_sink_module_id=None, volume=100):
+    def __init__(self, mac, name, sink_id, latency_ms=0, loopback_module_id=None, null_sink_module_id=None, volume=100, 
+        channel="STEREO",):
         ## THIS VARIABLE STORES THE SPEAKER'S BLUETOOTH HARDWARE MAC ADDRESS
         self.mac = mac
         ## THIS VARIABLE STORES THE PIPEWIRE/PACTL SINK NAME USED TO ADDRESS THIS SPEAKER
@@ -29,6 +32,7 @@ class BluetoothSpeaker:
         ## THIS VARIABLE STORES THE SPEAKER'S MUTE STATE, LEFT UNSET UNTIL mute_on()/mute_off() ARE CALLED
         self.ismute = None
 
+        self.channel = channel
 
     ## THIS METHOD SERIALIZES THE SPEAKER'S PERSISTABLE FIELDS INTO A PLAIN DICTIONARY FOR JSON STORAGE
     def to_dict(self):
@@ -39,6 +43,7 @@ class BluetoothSpeaker:
             "latency_ms": self.latency_ms,
             "null_sink_module_id": self.null_sink_module_id,
             "loopback_module_id": self.loopback_module_id,
+            "channel": self.channel,
         }
 
     ## THIS METHOD REBUILDS A BluetoothSpeaker OBJECT FROM A PREVIOUSLY SAVED STATE DICTIONARY
@@ -52,6 +57,7 @@ class BluetoothSpeaker:
             latency_ms=data.get("latency_ms", 0),
             loopback_module_id=data.get("loopback_module_id"),
             null_sink_module_id=data.get("null_sink_module_id"),
+            channel=data.get("channel", "STEREO"),
         )
 
     ## THIS METHOD LOADS A module-null-sink FOR THIS SPEAKER AND RECORDS ITS NAME AND PACTL MODULE ID
@@ -67,7 +73,54 @@ class BluetoothSpeaker:
     ## THIS METHOD RETURNS THIS SPEAKER'S NULL SINK NAME FOR USE WHEN BUILDING THE COMBINED SINK'S SLAVE LIST
     def get_null_sink_name(self):
         return self.null_sink_name 
-    
+
+    def set_channel(self, channel):
+        channel = channel.upper()
+
+        if channel not in ("FL", "FR", "STEREO"):
+            raise ValueError("channel must be 'FL', 'FR', or 'STEREO'")
+
+        return channel
+    # METHOD FOR UPDATING AUDIO CHANNEL FRONT RIGHT, FRONT LEFT, STEREO USING PIPEWIRE pw-link
+    def update_channel(self, channel):
+        combined_sink_name = COMBINED_OUTPUT_SINK
+        new_channel = self.set_channel(channel)
+
+        # Remove all possible links.
+        for source_channel in ("FL", "FR"):
+            for destination_channel in ("FL", "FR"):
+                source = (
+                    f"output.{combined_sink_name}_{self.name}_null_delayed:"
+                    f"output_{source_channel}"
+                )
+                destination = (
+                    f"{self.name}_null_delayed:playback_{destination_channel}"
+                )
+
+                pwlink(["-d", source, destination])
+
+        if new_channel == "STEREO":
+            routes = [("FL", "FL"), ("FR", "FR")]
+        else:
+            routes = [
+                (new_channel, "FL"),
+                (new_channel, "FR"),
+            ]
+
+        for source_channel, destination_channel in routes:
+            source = (
+                f"output.{combined_sink_name}_{self.name}_null_delayed:"
+                f"output_{source_channel}"
+            )
+            destination = (
+                f"{self.name}_null_delayed:playback_{destination_channel}"
+            )
+
+            pwlink([source, destination])
+
+        self.channel = new_channel
+
+
     ## THIS METHOD CLAMPS AND APPLIES A NEW VOLUME LEVEL TO THIS SPEAKER'S SINK VIA PACTL
     def set_volume(self, level: int):
         self.volume = max(0, min(100, level))
@@ -109,6 +162,7 @@ class BluetoothSpeaker:
         pactl(f"set-sink-mute {self.name} 0")
 
         return f"Updated {self.name} latency to {latency_ms}ms"
+
 
     ## THIS METHOD MUTES THIS SPEAKER'S SINK
     def mute_on(self):
