@@ -1,10 +1,22 @@
+import sys
 import subprocess
 import time
-import numpy as np
-import scipy.io.wavfile as wav
-from scipy.signal import chirp, correlate, windows
-import sounddevice as sd
 from core.pactl import pactl
+
+try:
+    import numpy as np
+    import scipy.io.wavfile as wav
+    from scipy.signal import chirp, correlate, windows
+    import sounddevice as sd
+except (ImportError, OSError) as e:
+    print("\n[Error] Missing calibration dependencies!")
+    print("Please install required libraries:")
+    print("  1. System audio:  sudo apt install libportaudio2  (or equivalent)")
+    print("  2. Python packages: pip install -r requirements.txt\n")
+    sys.exit(1)
+
+
+
 
 
 class AudioCalibrator:
@@ -99,3 +111,17 @@ class AudioCalibrator:
             }
 
         return results
+
+
+## TODO
+## make sure mic input is on and capturing?
+
+## rewrite without pip depencencies?
+##
+# Option 2: Zero-Dependency Pure Linux Approach (No SciPy / NumPy / SoundDevice)
+
+# Since the project already runs on Linux with PipeWire and standard CLI tools (pactl, pw-link, pw-play), we can drop the heavy Python dependencies entirely by using Linux native tools and standard library modules:
+
+#     Recording & Playing: Use pw-record (or parec) and pw-play via subprocess.
+#     Audio File Handling: Use Python's built-in wave module.
+#     Cross-correlation math: A pre-computed chirp WAV file plus a simple FFT cross-correlation in pure Python, or pre-recorded WAV template.
