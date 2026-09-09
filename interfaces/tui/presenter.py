@@ -95,6 +95,7 @@ def build_app_config(
         "Setup": {
             "Scan & Select Bluetooth Devices": device_selection_menu,
             "Auto connect & combine": connect_all_fn,
+            "Auto calibrate speakers": audio_mgr.calibrate,
         },
         "Speaker controls": speaker_controls if speaker_controls else {
             "No speakers active (Run Setup)": lambda: "Run Audio Setup first."

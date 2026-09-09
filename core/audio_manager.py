@@ -4,6 +4,7 @@ from core.audio_sinks import combine_speakers, unload_audio_modules
 from core.speaker import BluetoothSpeaker
 from core.pactl import pactl
 from core.load_env import COMBINED_OUTPUT_SINK
+from core.audio_calibrator import AudioCalibrator
  
 ## THIS VARIABLE STORES THE FILENAME USED TO PERSIST AND RESTORE SPEAKER STATE BETWEEN RUNS
 # STATE FILE 
@@ -47,16 +48,41 @@ class AudioManager:
             print(f"Failed to load state: {e}")
             return False
  
-    ## THIS METHOD TEARS DOWN ANY EXISTING AUDIO MODULES, REBUILDS THE COMBINED SPEAKER SETUP FROM SCRATCH, AND PERSISTS THE RESULT
-    def setup_audio(self):
-        unload_audio_modules()
-        self.speakers = combine_speakers(self.combined_sink_name)
-        self.persist_state()
-        print(f"Initialized & saved {len(self.speakers)} speakers.")
- 
     ## THIS METHOD CLAMPS AND APPLIES A NEW MASTER VOLUME LEVEL TO THE COMBINED SINK VIA PACTL
     def set_master_volume(self, level: int):
         level = max(0, min(100, level))
         pactl(f"set-sink-volume {self.combined_sink_name} {level}%")
         print(f"Master volume set to {level}%")
+
+    ## METHOD TO AUTO CALIBRATE SPEAKER LATENCY
+    def calibrate(self):
+        if not self.speakers:
+            print(
+                "No speakers loaded. Make sure speaker_state.json exists and has speakers."
+            )
+            return None
+
+        print(f"Found {len(self.speakers)} speaker(s):")
+        for s in self.speakers:
+            print(f" - {s.name} (current latency: {s.latency_ms}ms)")
+
+        print(
+            "\nStarting calibration... Make sure your microphone is ready and not muted."
+        )
+
+        calibrator = AudioCalibrator(self.speakers)
+        results = calibrator.calibrate()
+
+        # Save updated latencies to JSON
+        self.persist_state()
+
+        print("\nCalibration Complete!")
+        # print(results)
+
+        print("\nUpdated speaker values:")
+        for s in self.speakers:
+            print(f" - {s.name}: {s.latency_ms}ms")
+
+        return
+
 

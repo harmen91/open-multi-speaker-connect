@@ -81,6 +81,7 @@ class BluetoothSpeaker:
             raise ValueError("channel must be 'FL', 'FR', or 'STEREO'")
 
         return channel
+
     # METHOD FOR UPDATING AUDIO CHANNEL FRONT RIGHT, FRONT LEFT, STEREO USING PIPEWIRE pw-link
     def update_channel(self, channel):
         combined_sink_name = COMBINED_OUTPUT_SINK
@@ -97,11 +98,11 @@ class BluetoothSpeaker:
                     f"{self.name}_null_delayed:playback_{destination_channel}"
                 )
 
-                pwlink(["-d", source, destination])
+                pwlink(["-d", source, destination]) #disconnect channel with pw-link -d
 
         if new_channel == "STEREO":
             routes = [("FL", "FL"), ("FR", "FR")]
-        else:
+        else: 
             routes = [
                 (new_channel, "FL"),
                 (new_channel, "FR"),
@@ -115,8 +116,8 @@ class BluetoothSpeaker:
             destination = (
                 f"{self.name}_null_delayed:playback_{destination_channel}"
             )
-
-            pwlink([source, destination])
+            
+            pwlink([source, destination]) #connect channel with pw-link
 
         self.channel = new_channel
 

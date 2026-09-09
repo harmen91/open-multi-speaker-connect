@@ -15,4 +15,20 @@ ai-vibecoded-bullshit/
 
 # generated speaker_state.sjon file
 speaker_state.json
+selected_devices.json
 #..
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+
+# Python bytecode & cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Temporary test audio
+*.wav
+/tmp/*.wav
