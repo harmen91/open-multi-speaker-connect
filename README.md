@@ -71,9 +71,20 @@ Latency changes at runtime (`BluetoothSpeaker.set_latency`) mute the speaker, te
 ## Requirements
 
 - Linux with **PipeWire** and **BlueZ**
-- Python 3
+- Python 3, Python3-NumPy, Python3-SciPy and Python3-SoundDevice 
+- `sudo apt install python3 python3-numpy python3-scipy python3-sounddevice`
+
+- libportaudio2 On Debian / Ubuntu / Raspberry Pi OS:
+- `sudo apt install libportaudio2`
+- portaudio on Arch Linux:
+- `sudo pacman -S portaudio`
+- portaudio on Fedora:
+- `sudo dnf install portaudio`
+
 - `pactl` and `bluetoothctl` available in `$PATH`
-- Bluetooth speaker MAC addresses configured in a `.env` file
+- (optional) Bluetooth speaker MAC addresses configured in a `.env` file
+
+
 
 ## Configuration
 
@@ -95,6 +106,8 @@ bluetoothctl scan on
 ```
 
 ### The `.env` file
+
+This is currently under development, you can also use the scan and connect menu item now.
 
 Create a `.env` file in the project root:
 
