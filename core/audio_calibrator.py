@@ -29,7 +29,7 @@ class AudioCalibrator:
     ):
         # Stores the list of BluetoothSpeaker instances to measure and calibrate
         self.speakers = speakers
-        # Audio sample rate in Hz (44.1 kHz is standard CD quality)
+        # Audio sample rate in Hz 
         self.sample_rate = sample_rate
         # Filesystem path where the generated chirp sound file will be saved
         self.chirp_file = chirp_file

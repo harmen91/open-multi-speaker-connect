@@ -20,7 +20,7 @@ A Python CLI tool for Linux (PipeWire + BlueZ) that connects multiple Bluetooth 
 
 Bluetooth speakers introduce inconsistent latency compared to wired output. Combining multiple speakers into one sink without correction causes audible timing drift. This project automates the connection setup and lets each speaker's delay be tuned individually so everything plays in sync.
 
-## Architecture
+## Architecture (outdated)
 
 The project is split into four layers:
 
@@ -44,7 +44,7 @@ The project is split into four layers:
 └─────────────────────────────────────────────┘
 ```
 
-### How the audio pipeline works
+### How the audio pipeline works (outdated)
 
 When you run **Connect All & Combine**, the tool builds this PipeWire graph for every connected speaker:
 
@@ -91,7 +91,7 @@ Latency changes at runtime (`BluetoothSpeaker.set_latency`) mute the speaker, te
 Discovery, selection, connection and combined sink creation can be done through the Setup menu.
 Hardware output addresses can also be entered manually. Automatic fall-back to a .env file in case the user does not want to rely on bluetooth discovery.
 
-### Finding your hardware addresses
+### Finding your hardware addresses (outdated)
 
 Your Bluetooth controller(s):
 
@@ -105,7 +105,7 @@ Your speakers (put them in pairing mode first):
 bluetoothctl scan on
 ```
 
-### The `.env` file
+### The `.env` file (outdated)
 
 This is currently under development, you can also use the scan and connect menu item now.
 
@@ -165,7 +165,7 @@ python3 main.py --web
 
 Not implemented yet — currently just prints a placeholder message.
 
-## TUI menu structure
+## TUI menu structure (outdated)
 
 ```
 BLUETOOTHCTL Connect All & Combine
@@ -198,7 +198,7 @@ Speaker objects (latency, volume, module IDs) are saved to `speaker_state.json` 
 - **pactl error handling** — `pactl` failures are not always surfaced clearly to the TUI log panel.
 - **`is_combined_sink_active()` is a shallow check** — it only checks whether a sink with the configured name exists in `pactl list short sinks`, not whether it's actually backed by the currently connected Bluetooth devices. Flagged in the source as work in progress.
 
-## File structure
+## File structure (outdated)
 
 ```
 open-multi-speaker-connect/
