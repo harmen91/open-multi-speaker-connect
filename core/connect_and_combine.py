@@ -1,6 +1,7 @@
 import time
 from core.bluetoothctl import bluetooth_connect_speakers, all_connected, bluetoothctl_scan_stop
-from core.audio_sinks import combine_speakers, unload_audio_modules, is_combined_sink_active, map_mac_to_sink
+from core.audio_sinks import combine_speakers, is_combined_sink_active, map_mac_to_sink
+from core.reset import unload_audio_modules
 from core.audio_manager import AudioManager
 
 ## THIS FUNCTION POLLS PACTL UNTIL EVERY CONNECTED MAC HAS A REAL (NON-NULL-DELAYED) SINK, OR THE TIMEOUT EXPIRES

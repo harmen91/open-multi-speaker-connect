@@ -1,6 +1,7 @@
 import os
 import json
-from core.audio_sinks import combine_speakers, unload_audio_modules
+from core.audio_sinks import combine_speakers
+from core.reset import unload_audio_modules
 from core.speaker import BluetoothSpeaker
 from core.pactl import pactl
 from core.load_env import COMBINED_OUTPUT_SINK
@@ -20,7 +21,6 @@ class AudioManager:
         self.combined_sink_name = COMBINED_OUTPUT_SINK
         self.restore_state()
  
-    ## THIS METHOD WRITES THE COMBINED SINK NAME AND EVERY SPEAKER'S SERIALIZED STATE TO THE JSON STATE FILE
     def persist_state(self):
         ## THIS VARIABLE HOLDS THE DICTIONARY THAT WILL BE SERIALIZED TO JSON, BUILT FROM THE CURRENT SINK NAME AND SPEAKER LIST
         data = {
@@ -84,5 +84,7 @@ class AudioManager:
             print(f" - {s.name}: {s.latency_ms}ms")
 
         return
+    
+
 
 

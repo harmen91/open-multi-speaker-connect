@@ -66,7 +66,6 @@ class BluetoothScanner:
             elif "[CHG] Device" in line and mac in self.known_devices:
                 self.devices[mac] = self.known_devices[mac]
 
-
         return self.devices.copy()
 
     def load_known_devices(self):

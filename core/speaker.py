@@ -9,29 +9,18 @@ class BluetoothSpeaker:
     ## THIS CONSTRUCTOR INITIALIZES THE SPEAKER'S IDENTITY (MAC, NAME, SINK ID) AND ITS DEFAULT LATENCY, MODULE ID AND VOLUME STATE
     def __init__(self, mac, name, sink_id, latency_ms=0, loopback_module_id=None, null_sink_module_id=None, volume=100, 
         channel="STEREO",):
-        ## THIS VARIABLE STORES THE SPEAKER'S BLUETOOTH HARDWARE MAC ADDRESS
         self.mac = mac
-        ## THIS VARIABLE STORES THE PIPEWIRE/PACTL SINK NAME USED TO ADDRESS THIS SPEAKER
         self.name = name
-        ## THIS VARIABLE STORES THE PACTL SINK ID THIS SPEAKER WAS MAPPED TO
         self.sink_id = sink_id
-        ## THIS VARIABLE STORES THE CURRENT LOOPBACK DELAY IN MILLISECONDS USED TO CORRECT SYNC DRIFT
         self.latency_ms = latency_ms
-        ## THIS VARIABLE STORES THE PACTL MODULE ID OF THE ACTIVE LOOPBACK MODULE FEEDING THIS SPEAKER
         self.loopback_module_id = loopback_module_id
-        ## THIS VARIABLE STORES THE NAME OF THIS SPEAKER'S DELAYED NULL SINK, SET ONCE create_null_sink() RUNS
         self.null_sink_name = None
-        ## THIS VARIABLE STORES THE PACTL MODULE ID OF THIS SPEAKER'S NULL SINK
         self.null_sink_module_id = null_sink_module_id
-        ## THIS VARIABLE IS RESERVED FOR THE LOOPBACK SINK NAME BUT IS CURRENTLY UNUSED ELSEWHERE IN THE CLASS
-        self.loopback_sink_name = None
-        ## THIS VARIABLE IS RESERVED FOR THE LOOPBACK SINK'S MODULE ID BUT IS CURRENTLY UNUSED ELSEWHERE IN THE CLASS
-        self.loopback_sink_module_id = None
-        ## THIS VARIABLE STORES THE SPEAKER'S CURRENT VOLUME LEVEL AS A PERCENTAGE (0-100)
+        # self.loopback_sink_name = None
+        # self.loopback_sink_module_id = None
+         
         self.volume = volume
-        ## THIS VARIABLE STORES THE SPEAKER'S MUTE STATE, LEFT UNSET UNTIL mute_on()/mute_off() ARE CALLED
         self.ismute = None
-
         self.channel = channel
 
     ## THIS METHOD SERIALIZES THE SPEAKER'S PERSISTABLE FIELDS INTO A PLAIN DICTIONARY FOR JSON STORAGE
@@ -67,7 +56,7 @@ class BluetoothSpeaker:
 
     ## THIS METHOD LOADS A module-loopback BRIDGING THIS SPEAKER'S NULL SINK MONITOR TO ITS REAL SINK, APPLYING THE CURRENT LATENCY
     def create_loopback(self):
-        self.loopback_name = self.name + "_loopback"
+        # self.loopback_name = self.name + "_loopback"
         self.loopback_module_id = pactl(f"load-module module-loopback source={self.null_sink_name}.monitor sink={self.name} latency_msec={self.latency_ms}")
 
     ## THIS METHOD RETURNS THIS SPEAKER'S NULL SINK NAME FOR USE WHEN BUILDING THE COMBINED SINK'S SLAVE LIST

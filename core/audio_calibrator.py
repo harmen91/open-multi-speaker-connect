@@ -16,9 +16,6 @@ except (ImportError, OSError) as e:
     sys.exit(1)
 
 
-
-
-
 class AudioCalibrator:
 
     def __init__(
@@ -69,7 +66,7 @@ class AudioCalibrator:
 
         # 2. Plays the chirp WAV file directly to the speaker's PipeWire node ID, bypassing the combined sink
         subprocess.run(
-            ["pw-play", "--target", speaker.sink_id, self.chirp_file],
+            ["pw-play", "--volume", "1.0", "--properties", "media.role=Notification", "--target", speaker.sink_id, self.chirp_file],
             check=True,
         )
 

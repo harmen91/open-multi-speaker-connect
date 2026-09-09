@@ -4,16 +4,6 @@ from core.bluetoothctl import all_connected
 from core.speaker import BluetoothSpeaker
 from core.pactl import pactl
 
-# FUNC TO CLEANUP NULL, LOOPBACK AND COMBINE SINKS
-def unload_audio_modules():
-    commands = [
-        "pactl list short modules | grep module-null-sink | awk '{print $1}' | xargs -r -n1 pactl unload-module",
-        "pactl list short modules | grep module-loopback | awk '{print $1}' | xargs -r -n1 pactl unload-module",
-        "pactl list short modules | grep module-combine-sink | awk '{print $1}' | xargs -r -n1 pactl unload-module",
-    ]
-    for cmd in commands:
-        subprocess.run(cmd, shell=True)  
-
 # CREATE DICTIONAIRY THAT MAPS BLUETOOTHCTL CONFIRMED CONNECTED DEVICES TO PACTL LIST SHORT SINKS
 def map_mac_to_sink():
     is_connected, connected_devices_list = all_connected(verbose=False) #UNPACKING TUPLE = BOOL, LIST OF [MAC]'s

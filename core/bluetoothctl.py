@@ -4,7 +4,6 @@ import queue
 import time
 import re
 from core.load_env import CONTROLLER_INPUT, CONTROLLER_OUTPUT, INPUT_DEVICES
-
 import core.load_env
 
 def current_devices():
@@ -91,7 +90,6 @@ def bluetoothctl_remove_devices():
     for mac in current_devices():
         bluetoothctl_run((f"remove {mac}"))
 
-
 # CHECK IF SINGLE DEVICE IS TRUSTED
 def is_trusted(mac, verbose = False):
     timeout = 10
@@ -142,7 +140,6 @@ def all_trusted():
             return False
     return True
 
-
 # CHECK IF ALL DEVICES ARE CONNECTED, RETURN LIST OF CONNECTED DEVICES FROM BLUETOOTHCTL DEVICES CONNECTED OUTPUT
 def all_connected(verbose = True) -> (bool, list):
     timeout = 10
@@ -188,11 +185,8 @@ def trust_and_pair_devices(devices):
             max_trusting_attempts = 0
             while not trusted and max_trusting_attempts < 10:
                 
-                # WHILE MAC DID NOT APPEAR YET WAIT 1 SECOND, RIGHT NOW INFINITE LOOP !! 
-                ## Idea??>> DO SOMETHING WITH POWER OFF ON OR TOGGLE SCAN ON ??? >> CHECK SCAN LINE FOR "[CHG] Controller C4:3D:1A:00:BE:68 Discovering: no"
                 waited = 0
                 restart_after = 10
-
                 while not any(mac in line for line in local_scan_lines):
                     try:
                         line = scan_queue.get(timeout=1) #line becomes latest queue.get
@@ -214,8 +208,6 @@ def trust_and_pair_devices(devices):
                             bluetoothctl_scan_start()
 
                             waited = 0
-
-
 
                 # BROKE OUT OF INNER WHILE LOOP FOR MAC APPEAR IN local_scan_lines > ATTEMPTING TO TRUST
                 max_trusting_attempts += 1
@@ -299,32 +291,3 @@ def bluetooth_connect_speakers(CONTROLLER_OUTPUT, devices=None):
 
     return all_connected()
 
-
-
-
-################################
-######### TEST STACK ###########
-################################
-
-if __name__ == "__main__":
-
-    bluetooth_connect_speakers(CONTROLLER_OUTPUT, devices)
-
-
-
-
-################################
-######### TO DO ################
-################################
-
-## -- BLUETOOTH SCAN TRUST / PAIR while loop improvement :
-## -- ERROR HANDLING >> Controller {CONTROLLER OUTPUT} Discovering: no   << TRIGGER BLUETOOTH RESTART OFF WAIT ON WAIT SCAN ON FUNC
-## -- ERROR HANDLING >> NO SCAN INPUT FOR x time                         << TRIGGER BLUETOOTH RESTART OFF WAIT ON WAIT SCAN ON FUNC
-
-
-## -- LOSING A SPEAKER E.G. BATTERY RUNNING OUT / WHATEVER
-## -- upon disconnecting bluetoothctl scan receives 'Device {mac} Connected: no'
-## -- 
-## -- RECONNECTING WORKS WITHOUT SCAN IF PREVIOUSLY CONNECTED, BUT :
-## --   - 'pairable on' needs to be set for automatic reconnection
-## --   - buggy reconnection status 'bluetoothctl devices Connected' no longer reliably list connected devices, causing script to hang
