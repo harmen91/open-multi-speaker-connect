@@ -266,24 +266,24 @@ def bluetooth_connect_speakers(CONTROLLER_OUTPUT, devices=None):
 
     if not all_connected()[0]:
 
-        print("#####################  TURNING ON BLUETOOTH #######################")
+        print("Turning on bluetooth..")
         bluetoothctl_run("power on")
         time.sleep(3)
 
-        print(f"#####################  SET DEFAULT OUTPUT CONTROLLER TO {CONTROLLER_OUTPUT} #######################")
+        print(f"Setting default controller to: {CONTROLLER_OUTPUT}...")
         bluetoothctl_select_controller(CONTROLLER_OUTPUT) ## improve test against bluetoothctl list to check if agent is already [default]
         time.sleep(1)
 
-        print("#####################  START BLUETOOTHCTL SCAN BACKGROUND SERVICE #######################")
-        print("#####################  CAPTURING ALL INCOMING BLUETOOTH MESSAGES #######################")
+        print("Starting bluetoothctl scan background service...")
+        print("Capturing all incoming bluetooth messages..")
         bluetoothctl_scan_start() 
         time.sleep(3)
 
-        print("#####################  TRUST AND PAIR DEVICES #######################")
+        print("Attempting to trust and pair all devices..")
         trust_and_pair_devices(devices)
         time.sleep(1)
 
-        print("#####################  CONNECT ALL DEVICES #######################")
+        print("Attempting to connect to all paired devices..")
         connect_devices(devices)
 
         # print("#####################  TERMINATE ALL LINGERING BACKGROUND SCAN SERVICES #######################")    

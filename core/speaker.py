@@ -16,14 +16,11 @@ class BluetoothSpeaker:
         self.loopback_module_id = loopback_module_id
         self.null_sink_name = None
         self.null_sink_module_id = null_sink_module_id
-        # self.loopback_sink_name = None
-        # self.loopback_sink_module_id = None
          
         self.volume = volume
         self.ismute = None
         self.channel = channel
 
-    ## THIS METHOD SERIALIZES THE SPEAKER'S PERSISTABLE FIELDS INTO A PLAIN DICTIONARY FOR JSON STORAGE
     def to_dict(self):
         return {
             "mac": self.mac,
@@ -56,7 +53,6 @@ class BluetoothSpeaker:
 
     ## THIS METHOD LOADS A module-loopback BRIDGING THIS SPEAKER'S NULL SINK MONITOR TO ITS REAL SINK, APPLYING THE CURRENT LATENCY
     def create_loopback(self):
-        # self.loopback_name = self.name + "_loopback"
         self.loopback_module_id = pactl(f"load-module module-loopback source={self.null_sink_name}.monitor sink={self.name} latency_msec={self.latency_ms}")
 
     ## THIS METHOD RETURNS THIS SPEAKER'S NULL SINK NAME FOR USE WHEN BUILDING THE COMBINED SINK'S SLAVE LIST
@@ -110,7 +106,6 @@ class BluetoothSpeaker:
 
         self.channel = new_channel
 
-
     ## THIS METHOD CLAMPS AND APPLIES A NEW VOLUME LEVEL TO THIS SPEAKER'S SINK VIA PACTL
     def set_volume(self, level: int):
         self.volume = max(0, min(100, level))
@@ -153,12 +148,9 @@ class BluetoothSpeaker:
 
         return f"Updated {self.name} latency to {latency_ms}ms"
 
-
-    ## THIS METHOD MUTES THIS SPEAKER'S SINK
     def mute_on(self):
         pactl(f"set-sink-mute {self.name} 1") 
 
-    ## THIS METHOD UNMUTES THIS SPEAKER'S SINK
     def mute_off(self):
         pactl(f"set-sink-mute {self.name} 0") 
 

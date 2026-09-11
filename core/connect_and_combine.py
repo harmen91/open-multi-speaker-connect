@@ -32,17 +32,17 @@ def connect_and_combine_all(
         controller_output, output_devices
     )
  
-    print("##################### ARE ALL DEVICES CONNECTED? #######################")
+    print("Check: Are all devices connected?")
     print(all_connected)
-    print("##################### LIST ALL CONNECTED DEVICES #######################")
+    print("List all connected devices:")
     print(connected_list)
-    print("#################### FINISHED CONNECTING DEVICES ######################")
+    print("Finished connecting devices")
  
     # Sinks must exist BEFORE the scan process is killed — scan_stop too early was the root cause of missing sinks
     wait_for_sinks(connected_list)
  
     bluetoothctl_scan_stop()
-    print("#################### BLUETOOTH BACKGROUND SCAN OFF ######################")
+    print("Bluetooth scan off")
  
     ## THIS CHECK ONLY PROCEEDS TO BUILD THE COMBINED SINK IF EVERY SPEAKER CONNECTED SUCCESSFULLY
     if all_connected:

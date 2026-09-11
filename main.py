@@ -59,7 +59,8 @@ def refresh_tui_after_scan():
 
 # START TERMINAL USER INTERFACE
 def tui():
-    if is_combined_sink_active(audio_mgr.combined_sink_name) and not audio_mgr.speakers:
+
+    if is_combined_sink_active(audio_mgr.combined_sink_name):
         audio_mgr.speakers = build_speaker_list()
         audio_mgr.persist_state()
     start_app(title="OPEN SPEAKER MULTI CONNECT", menu_config=tui_config())

@@ -17,7 +17,6 @@ except (ImportError, OSError) as e:
 
 
 class AudioCalibrator:
-
     def __init__(
         self,
         speakers: list,
@@ -66,7 +65,7 @@ class AudioCalibrator:
 
         # 2. Plays the chirp WAV file directly to the speaker's PipeWire node ID, bypassing the combined sink
         subprocess.run(
-            ["pw-play", "--volume", "1.0", "--properties", "media.role=Notification", "--target", speaker.sink_id, self.chirp_file],
+            ["pw-play", "--volume", "1.0", "--target", speaker.sink_id, self.chirp_file],
             check=True,
         )
 
@@ -109,16 +108,6 @@ class AudioCalibrator:
 
         return results
 
-
-## TODO
-## make sure mic input is on and capturing?
-
-## rewrite without pip depencencies?
-##
-# Option 2: Zero-Dependency Pure Linux Approach (No SciPy / NumPy / SoundDevice)
-
-# Since the project already runs on Linux with PipeWire and standard CLI tools (pactl, pw-link, pw-play), we can drop the heavy Python dependencies entirely by using Linux native tools and standard library modules:
-
-#     Recording & Playing: Use pw-record (or parec) and pw-play via subprocess.
-#     Audio File Handling: Use Python's built-in wave module.
-#     Cross-correlation math: A pre-computed chirp WAV file plus a simple FFT cross-correlation in pure Python, or pre-recorded WAV template.
+#TODO
+# Have an audio calibrator script run over a longer period of time, and take the std dev median (excluding extreme values) to get a more accurate initial calibration
+# Ask user to confirm setting the calculated latency instead of applying immediatly

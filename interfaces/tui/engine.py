@@ -1,6 +1,5 @@
 import os
 
-## THIS LINE SETS THE ESCAPE KEY DELAY TO 25MS BEFORE CURSES IMPORTS SO EXITING MENUS IS INSTANT WITHOUT DELAY
 os.environ.setdefault('ESCDELAY', '25')
 
 import curses
@@ -9,10 +8,7 @@ import queue
 import threading
 import time
 
-## THIS OBJECT HOLDS A THREAD-SAFE MESSAGE QUEUE USED BY ALL BACKGROUND WORKERS TO PASS LOG STRINGS SAFELY TO THE TUI
 LOG_QUEUE = queue.Queue()
-
-## THIS FLAG SYNCHRONIZES THREAD STATE TO SIGNAL WHEN A BLOCKING BACKGROUND TASK IS ACTIVELY RUNNING AND LOCKING THE UI
 BUSY_EVENT = threading.Event()
 
 ACTIVE_APP = None
@@ -21,11 +17,9 @@ def get_active_menu():
     global ACTIVE_APP
     return ACTIVE_APP
 
-## THIS FUNCTION SENDS TEXT MESSAGES INTO THE THREAD-SAFE QUEUE SO THEY CAN BE CONSUMED AND PRINTED IN THE BOTTOM LOG WINDOW
 def log(msg):
     LOG_QUEUE.put(str(msg))
 
-## THIS CONSTANT STORES THE ASCII ART BANNER RENDERED ACROSS THE TOP OF THE TUI ON STARTUP
 BANNER = r"""
                                                                                        
     ██  ██     ▄▄▄▄▄    ▄▄▄▄▄▄▄ ▄▄▄      ▄▄▄  ▄▄▄▄▄▄▄       ██  ██   ▄▄▄▄  ▄▄▄▄   ▄▄▄▄ 
@@ -37,12 +31,9 @@ BANNER = r"""
                                                                                        
 """
 
-## THIS FUNCTION RENDERS THE BANNER TEXT INTO ITS OWN WINDOW, CLIPPING EACH LINE TO THE WINDOW'S WIDTH SO NARROW TERMINALS DON'T CRASH CURSES
 def _draw_banner(win, banner=BANNER):
     win.erase()
     max_y, max_x = win.getmaxyx()
- 
-    ## THIS VARIABLE HOLDS THE BANNER SPLIT INTO INDIVIDUAL LINES, WITH LEADING/TRAILING BLANK LINES STRIPPED
     lines = banner.strip("\n").splitlines()
  
     for i, line in enumerate(lines):
@@ -53,10 +44,7 @@ def _draw_banner(win, banner=BANNER):
  
     win.refresh()
  
-
-## THIS CLASS REPRESENTS A SINGLE ENTRY IN A MENU HOLDING ITS DISPLAY LABEL, ITS ACTION CALLBACK OR SUBMENU, AND EXECUTION SETTINGS
 class MenuItem:
-    ## THIS CONSTRUCTOR INITIALIZES THE MENU ITEM ATTRIBUTES AND ENSURES EITHER AN ACTION FUNCTION OR SUBMENU IS PROVIDED
     def __init__(self, label, action=None, submenu=None, needs_input=False, blocking=True):
         assert action or submenu, "MenuItem needs an action or a submenu"
         self.label = label
@@ -65,20 +53,14 @@ class MenuItem:
         self.needs_input = needs_input
         self.blocking = blocking
 
-    ## THIS METHOD CHECKS IF THIS SPECIFIC ITEM OPENS ANOTHER SUBMENU RATHER THAN RUNNING A TERMINAL ACTION
     def is_submenu(self):
         return self.submenu is not None
 
-
-## THIS DECORATOR ATTACHES A NON-BLOCKING ATTRIBUTE FLAG TO A TARGET FUNCTION SO THE MENU DOES NOT LOCK WHILE IT RUNS IN THE BACKGROUND
 def non_blocking(fn):
     fn._blocking = False
     return fn
 
-
-## THIS CLASS MANAGES DRAWING AND HANDLING KEYBOARD EVENTS FOR A COLLECTION OF MENU ITEMS INSIDE A DEDICATED CURSES WINDOW
 class Menu:
-    ## THIS CONSTRUCTOR INITIALIZES THE MENU TITLE AND ITS LIST OF MENU ITEMS
     def __init__(self, title, items):
         self.title = title
         self.items = items
@@ -88,7 +70,6 @@ class Menu:
         new_menu = build_menu(self.title, new_config)
         self.items = new_menu.items
 
-    ## THIS METHOD RUNS THE INTERACTIVE EVENT LOOP WHICH CONTINUOUSLY DRAWS THE MENU, CHECKS FOR KEYPRESSES, AND DRAINS LOG MESSAGES
     def run(self, menu_win, log_win):
         sel = 0
         menu_win.timeout(50)
@@ -99,7 +80,6 @@ class Menu:
 
             key = menu_win.getch()
 
-            ## THIS CHECK PREVENTS USER NAVIGATION AND ACTION SELECTION WHENEVER A BLOCKING BACKGROUND TASK IS RUNNING
             if BUSY_EVENT.is_set():
                 continue
 
@@ -114,7 +94,6 @@ class Menu:
             elif key == ord('q'):
                 raise SystemExit
 
-    ## THIS METHOD HANDLES WHAT HAPPENS WHEN AN ITEM IS SELECTED BY EITHER OPENING A SUBMENU OR RUNNING ITS ACTION IN A BACKGROUND THREAD
     def _select(self, menu_win, log_win, item):
         if item.is_submenu():
             item.submenu.run(menu_win, log_win)
@@ -154,7 +133,6 @@ class Menu:
                             return
                         args.append(val)
 
-            ## THIS INTERNAL WORKER FUNCTION EXECUTES THE ACTION IN A THREAD, OPTIONALLY RAISING THE BUSY LOCK AND LOGGING ANY RETURN VALUES
             def _worker():
                 try:
                     if item.blocking:
@@ -170,7 +148,6 @@ class Menu:
 
             threading.Thread(target=_worker, daemon=True).start()
 
-    ## THIS METHOD RENDERS THE MENU TITLE, BUSY INDICATOR, AND HIGHLIGHTED/DIMMED MENU ITEMS TO THE TOP MENU WINDOW
     def _draw(self, menu_win, sel):
         menu_win.erase()
 
@@ -187,7 +164,6 @@ class Menu:
             menu_win.addstr(2 + i, 4, label, attr)
         menu_win.refresh()
 
-    ## THIS METHOD CONSUMES ALL PENDING MESSAGES FROM THE LOG QUEUE AND PRINTS THEM LINE BY LINE INTO THE SCROLLING BOTTOM LOG WINDOW
     def _drain_logs(self, log_win):
         updated = False
         while not LOG_QUEUE.empty():
@@ -230,8 +206,6 @@ def prompt_str(win, prompt, y=4):
     win.timeout(50)
     return buf.strip()
 
-
-## THIS FUNCTION PROMPTS THE USER FOR A NUMERICAL INTEGER INPUT WITH IN-PLACE EDITING, BACKSPACE SUPPORT, AND ESCAPE CANCELLATION
 def prompt_int(win, prompt, y=4):
     curses.noecho()
     curses.curs_set(1)
@@ -282,7 +256,6 @@ def prompt_confirm(win, prompt, y=4):
     win.timeout(50)
     return confirmed
 
-## THIS FUNCTION PARSES A NESTED CONFIG DICTIONARY AND RECURSIVELY CREATES MENU AND MENUITEM INSTANCES WITH AUTOMATIC PARAMETER DETECTION
 def build_menu(title, config):
     items = []
     for label, target in config.items():
@@ -300,7 +273,6 @@ def build_menu(title, config):
     return Menu(title, items)
 
 
-## THIS FUNCTION IS THE TOP-LEVEL PUBLIC LAUNCHER THAT SPLITS THE TERMINAL SCREEN INTO A BANNER, MENU, AND LOG PANEL AND RUNS THE CURSES EVENT LOOP
 def start_app(title="Main Menu", menu_config=None, banner=BANNER):
     global ACTIVE_APP
     if menu_config is None:
@@ -309,19 +281,15 @@ def start_app(title="Main Menu", menu_config=None, banner=BANNER):
     nav_info = " || Hit ESC to go back. Press Q to quit."
     ACTIVE_APP = build_menu(f"{title} {nav_info}", menu_config)
  
-    ## THIS INTERNAL WRAPPER FUNCTION CREATES AND CONFIGURES THE CURSES WINDOW OBJECTS AND STARTS THE MAIN EVENT LOOP
     def _main(stdscr):
         curses.curs_set(0)
         max_y, max_x = stdscr.getmaxyx()
  
-        ## THIS VARIABLE HOLDS THE NUMBER OF ROWS THE BANNER NEEDS, BASED ON HOW MANY LINES IT ACTUALLY CONTAINS
         banner_lines = banner.strip("\n").splitlines()
         banner_height = len(banner_lines)
  
-        ## THIS SPLITS THE TERMINAL INTO A FIXED TOP WINDOW FOR THE MENU AND A BOTTOM SCROLLABLE WINDOW FOR LOG MESSAGES
         menu_height = 12
  
-        ## THIS CHECK SKIPS THE BANNER ENTIRELY IF THE TERMINAL IS TOO SHORT TO FIT BANNER + MENU + AT LEAST ONE LOG LINE
         if max_y < banner_height + menu_height + 1:
             banner_height = 0
  
