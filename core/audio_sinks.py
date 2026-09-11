@@ -4,9 +4,9 @@ from core.bluetoothctl import all_connected
 from core.speaker import BluetoothSpeaker
 from core.pactl import pactl
 
-# CREATE DICTIONAIRY THAT MAPS BLUETOOTHCTL CONFIRMED CONNECTED DEVICES TO PACTL LIST SHORT SINKS
+# create dictionary that maps bluetoothctl confirmed connected devices to pactl list short sinks
 def map_mac_to_sink():
-    is_connected, connected_devices_list = all_connected(verbose=False) #UNPACKING TUPLE = BOOL, LIST OF [MAC]'s
+    is_connected, connected_devices_list = all_connected(verbose=False) # unpacking tuple = bool, list of [mac]'s
     out = pactl("list short sinks")
     device_to_sink = {}
     for device in connected_devices_list:
@@ -22,9 +22,9 @@ def map_mac_to_sink():
                 # fields = line.split()
                 device_to_sink[device] = {"id": fields[0], "name": fields[1]}
                 break
-    return device_to_sink # DICTIONARY = {'MAC':{'SINK ID':'NAME'}}
+    return device_to_sink # dictionary = {'mac': {'sink id': 'name'}}
 
-# FUNC TO BUILD LIST OF BLUETOOTH SPEAKER OBJECTS FROM EACH CONNECTED DEVICE IN DICT map_mac_to_sink()
+# func to build list of bluetooth speaker objects from each connected device in dict map_mac_to_sink()
 def build_speaker_list():
     bluetooth_speakers = []
     for mac, info in map_mac_to_sink().items():
@@ -33,25 +33,25 @@ def build_speaker_list():
         bluetooth_speakers.append(BluetoothSpeaker(mac=mac, name=device_name, sink_id=sink_id)) 
     return bluetooth_speakers
 
-# FUNC TO COMBINE ALL CONNECTED BLUETOOTH SPEAKERS INTO ONE AUDIO OUTPUT
+# func to combine all connected bluetooth speakers into one audio output
 
 def combine_speakers(name_combined_sink):
-    # BUILD LIST OF SPEAKER OBJECTS
+    # build list of speaker objects
     speakers = build_speaker_list()
 
-    # CALL CREATE_NULL_SINK METHOD ON EACH SPEAKER OBJECT, ADD SMALL DELAY
+    # call create_null_sink method on each speaker object, add small delay
     for speaker in speakers:
         print(f"Creating null_sink for {speaker}")
         speaker.create_null_sink()
         time.sleep(0.5)
 
-    # CALL CREATE_LOOPBACK METHOD ON EACH SPEAKER OBJECT, ADD SMALL DELAY
+    # call create_loopback method on each speaker object, add small delay
     for speaker in speakers:
         print(f"Creating loopback for {speaker}")
         speaker.create_loopback()
         time.sleep(0.5)
 
-    # COMBINING ALL SPEAKERS IN ONE SINK
+    # combining all speakers in one sink
     print(f"Combining all speakers in one sink named {name_combined_sink}")
     null_sink_names = []
     for speaker in speakers:
@@ -60,18 +60,39 @@ def combine_speakers(name_combined_sink):
     pactl(f"load-module module-combine-sink sink_name={name_combined_sink} slaves={null_sink_names_str}")
     time.sleep(0.5)
 
-    # SET COMBINED_SINK AS PACTL DEFAULT AUDIO OUTPUT
+    # set combined_sink as pactl default audio output
     print(f"Setting {name_combined_sink} as default pactl audio output")
     pactl(f"set-default-sink {name_combined_sink}")
 
     print(f"Succes!")
     return speakers
 
+# this function parses `pactl list modules` into {module_id: {"name": ..., "argument": ...}} so callers can verify a persisted id is still real
+def get_live_modules():
+    out = pactl("list modules")
+    modules = {}
+    current_id = current_name = None
+    current_arg = ""
+    for line in out.splitlines():
+        s = line.strip()
+        if s.startswith("Module #"):
+            if current_id is not None:
+                modules[current_id] = {"name": current_name, "argument": current_arg}
+            current_id = s.split("#", 1)[1].strip()
+            current_name, current_arg = None, ""
+        elif s.startswith("Name:"):
+            current_name = s.split(":", 1)[1].strip()
+        elif s.startswith("Argument:"):
+            current_arg = s.split(":", 1)[1].strip()
+    if current_id is not None:
+        modules[current_id] = {"name": current_name, "argument": current_arg}
+    return modules
 
-### FIX THIS TO ACTUALLY DOUBLE CHECK WITH CONNECTED BLUETOOTH DEVICES, NOT JUST SHORT SINK NAME OF COMBINED SINK
-### >>> !! <<< 
-## IF NOT COMBINED, BUT CONNECTED > SHOULD REMOVE SINK AND ALL CORRESPONDING NULLSINKS AND TRY AGAIN
-### WORK IN PROGRESS ####
+
+### needs work: this should actually double-check with connected bluetooth devices, not just the short sink name of the combined sink
+### todo
+## if not combined, but connected > should remove sink and all corresponding nullsinks and try again
+### work in progress ####
 def is_combined_sink_active(name_combined_sink):
     out = pactl("list short sinks")
     # Check each line's second column (the sink name)
@@ -89,11 +110,12 @@ def is_combined_sink_active(name_combined_sink):
 
 
 
-# ADD FL, FR, RL, RR, CENTER to ENV.. map them to the object.. use it later to manually adjust latency
 
-# # CHANGE DELAY 
+# add FL, FR, RL, RR, center to env.. map them to the object.. use later to manually adjust latency
 
-# find module id: 
+# # change delay
+
+# find module id:
 # pactl list short modules
 
 # pactl unload-module <ID>
@@ -103,8 +125,8 @@ def is_combined_sink_active(name_combined_sink):
 #   sink=alsa_output.platform-fe00b840.mailbox.stereo-fallback \
 #   latency_msec=180
 
-# # Initial calibration ideas
+# # initial calibration ideas
 
 # The Bluetooth speakers have inherent latency (~100-200ms) that the jack output (For the subwoofer) doesn't, so without compensation the jack will sound ahead. module-combine-sink doesn't support per-slave delay directly, so the fix is to insert a delayed loopback in front of the jack sink instead of feeding it directly.
 
-# >> Run python script interacting with pactl unload-module and load-module to change latency_msec ?? <<
+# >> idea: run a python script that interacts with pactl unload-module and load-module to change latency_msec ??

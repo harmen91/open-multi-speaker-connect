@@ -3,10 +3,10 @@ from core.pactl import pactl
 from core.pwlink import pwlink
 from core.load_env import COMBINED_OUTPUT_SINK
 
-## THIS CLASS REPRESENTS A SINGLE BLUETOOTH SPEAKER AND OWNS ITS PIPEWIRE NULL-SINK, LOOPBACK, LATENCY, VOLUME AND MUTE STATE
-# BLUETOOTH SPEAKER CLASS
+# this class represents a single bluetooth speaker and owns its pipewire null-sink, loopback, latency, volume and mute state
+# bluetooth speaker class
 class BluetoothSpeaker:
-    ## THIS CONSTRUCTOR INITIALIZES THE SPEAKER'S IDENTITY (MAC, NAME, SINK ID) AND ITS DEFAULT LATENCY, MODULE ID AND VOLUME STATE
+    # this constructor initializes the speaker's identity (mac, name, sink id) and its default latency, module id and volume state
     def __init__(self, mac, name, sink_id, latency_ms=0, loopback_module_id=None, null_sink_module_id=None, volume=100, 
         channel="STEREO",):
         self.mac = mac
@@ -32,8 +32,8 @@ class BluetoothSpeaker:
             "channel": self.channel,
         }
 
-    ## THIS METHOD REBUILDS A BluetoothSpeaker OBJECT FROM A PREVIOUSLY SAVED STATE DICTIONARY
-    ## THIS DECORATOR MARKS from_dict AS AN ALTERNATE CONSTRUCTOR THAT BUILDS A SPEAKER FROM THE CLASS ITSELF RATHER THAN AN INSTANCE
+    # rebuilds a BluetoothSpeaker object from a previously saved state dictionary
+    # this decorator marks from_dict as an alternate constructor that builds a speaker from the class itself rather than an instance
     @classmethod
     def from_dict(cls, data):
         return cls(
@@ -46,18 +46,43 @@ class BluetoothSpeaker:
             channel=data.get("channel", "STEREO"),
         )
 
-    ## THIS METHOD LOADS A module-null-sink FOR THIS SPEAKER AND RECORDS ITS NAME AND PACTL MODULE ID
+    # loads a module-null-sink for this speaker and records its name and pactl module id
     def create_null_sink(self):
         self.null_sink_name = self.name + "_null_delayed"
         self.null_sink_module_id = pactl(f"load-module module-null-sink sink_name={self.null_sink_name}")
 
-    ## THIS METHOD LOADS A module-loopback BRIDGING THIS SPEAKER'S NULL SINK MONITOR TO ITS REAL SINK, APPLYING THE CURRENT LATENCY
+    # loads a module-loopback bridging this speaker's null sink monitor to its real sink, applying the current latency
     def create_loopback(self):
         self.loopback_module_id = pactl(f"load-module module-loopback source={self.null_sink_name}.monitor sink={self.name} latency_msec={self.latency_ms}")
 
-    ## THIS METHOD RETURNS THIS SPEAKER'S NULL SINK NAME FOR USE WHEN BUILDING THE COMBINED SINK'S SLAVE LIST
+    # returns this speaker's null sink name for use when building the combined sink's slave list
     def get_null_sink_name(self):
         return self.null_sink_name 
+
+    # checks if this speaker's null-sink module id is still a live, matching module-null-sink
+    def _null_sink_ok(self, live_modules: dict) -> bool:
+        self.null_sink_name = self.name + "_null_delayed"  # deterministic — not persisted, always recomputed here
+        entry = live_modules.get(str(self.null_sink_module_id).strip()) if self.null_sink_module_id else None
+        return bool(entry) and entry["name"] == "module-null-sink" and f"sink_name={self.null_sink_name}" in entry["argument"]
+
+    # checks if this speaker's loopback module id is still a live, matching module-loopback
+    def _loopback_ok(self, live_modules: dict) -> bool:
+        entry = live_modules.get(str(self.loopback_module_id).strip()) if self.loopback_module_id else None
+        expected_source = f"source={self.null_sink_name}.monitor"
+        expected_sink = f"sink={self.name}"
+        return bool(entry) and entry["name"] == "module-loopback" and expected_source in entry["argument"] and expected_sink in entry["argument"]
+
+    # returns whether both of this speaker's modules are still valid, without changing anything
+    def verify_alive(self, live_modules: dict) -> bool:
+        return self._null_sink_ok(live_modules) and self._loopback_ok(live_modules)
+
+    # recreates only whichever part (null-sink and/or loopback) failed verification — other speakers are untouched
+    def repair(self, live_modules: dict):
+        if not self._null_sink_ok(live_modules):
+            self.create_null_sink()
+            time.sleep(0.3)
+        if not self._loopback_ok(live_modules):
+            self.create_loopback()
 
     def set_channel(self, channel):
         channel = channel.upper()
@@ -67,7 +92,7 @@ class BluetoothSpeaker:
 
         return channel
 
-    # METHOD FOR UPDATING AUDIO CHANNEL FRONT RIGHT, FRONT LEFT, STEREO USING PIPEWIRE pw-link
+    # method for updating audio channel (front right, front left, stereo) using pipewire pw-link
     def update_channel(self, channel):
         combined_sink_name = COMBINED_OUTPUT_SINK
         new_channel = self.set_channel(channel)
@@ -83,7 +108,7 @@ class BluetoothSpeaker:
                     f"{self.name}_null_delayed:playback_{destination_channel}"
                 )
 
-                pwlink(["-d", source, destination]) #disconnect channel with pw-link -d
+                pwlink(["-d", source, destination]) # disconnect channel with pw-link -d
 
         if new_channel == "STEREO":
             routes = [("FL", "FL"), ("FR", "FR")]
@@ -102,25 +127,25 @@ class BluetoothSpeaker:
                 f"{self.name}_null_delayed:playback_{destination_channel}"
             )
             
-            pwlink([source, destination]) #connect channel with pw-link
+            pwlink([source, destination]) # connect channel with pw-link
 
         self.channel = new_channel
 
-    ## THIS METHOD CLAMPS AND APPLIES A NEW VOLUME LEVEL TO THIS SPEAKER'S SINK VIA PACTL
+    # clamps and applies a new volume level to this speaker's sink via pactl
     def set_volume(self, level: int):
         self.volume = max(0, min(100, level))
         pactl(f"set-sink-volume {self.name} {self.volume}%")
         return 
 
-    ## THIS METHOD RAISES THIS SPEAKER'S VOLUME BY 10%, CLAMPED TO 100%
+    # raises this speaker's volume by 10%, clamped to 100%
     def volume_up(self):
         return self.set_volume(self.volume + 10)  
 
-    ## THIS METHOD LOWERS THIS SPEAKER'S VOLUME BY 10%, CLAMPED TO 0%
+    # lowers this speaker's volume by 10%, clamped to 0%
     def volume_down(self):
         return self.set_volume(self.volume - 10) 
  
-    ## THIS METHOD SAFELY RETUNES THIS SPEAKER'S LATENCY BY MUTING, SWAPPING THE LOOPBACK MODULE, WAITING FOR IT TO BE LIVE, THEN UNMUTING
+    # safely retunes this speaker's latency by muting, swapping the loopback module, waiting for it to be live, then unmuting
     def set_latency(self, latency_ms: int):
         self.latency_ms = latency_ms
 
@@ -154,16 +179,16 @@ class BluetoothSpeaker:
     def mute_off(self):
         pactl(f"set-sink-mute {self.name} 0") 
 
-    ## THIS METHOD POLLS `pactl list sink-inputs` UNTIL THE GIVEN LOOPBACK MODULE HAS AN ACTIVE SINK-INPUT, OR TIMES OUT
+    # polls `pactl list sink-inputs` until the given loopback module has an active sink-input, or times out
     def _wait_for_loopback_ready(self, module_id: str, timeout: float = 2.0, interval: float = 0.02) -> bool:
         """Poll pactl list sink-inputs until the loopback module has actually wired a sink-input."""
-        ## THIS VARIABLE STORES THE STRIPPED MODULE ID WE'RE WAITING TO SEE WIRED UP AS A SINK-INPUT
+        ## stripped module id we're waiting to see wired up as a sink-input
         target = module_id.strip()
-        ## THIS VARIABLE MARKS THE ABSOLUTE TIME AT WHICH POLLING SHOULD GIVE UP AND RETURN FALSE
+        ## absolute time at which polling gives up and returns False
         deadline = time.time() + timeout
         while time.time() < deadline:
             out = pactl("list sink-inputs")
-            ## THESE VARIABLES TRACK THE MODULE ID AND DRIVER OF THE SINK-INPUT BLOCK CURRENTLY BEING PARSED
+            ## track the module id and driver of the sink-input block currently being parsed
             current_module = None
             current_driver = None
             for line in out.splitlines():
@@ -179,6 +204,6 @@ class BluetoothSpeaker:
             time.sleep(interval)
         return False
 
-   ## THIS METHOD RETURNS A DEBUG-FRIENDLY STRING REPRESENTATION OF THE SPEAKER'S KEY IDENTIFYING FIELDS
+   # debug-friendly string representation of the speaker's key identifying fields
     def __repr__(self):
         return f"BluetoothSpeaker(name={self.name!r}, mac={self.mac!r}, sink_id={self.sink_id!r}, null_sink_name={self.null_sink_name}, null_sink_module_id={self.null_sink_module_id})"

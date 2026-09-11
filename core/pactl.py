@@ -1,6 +1,6 @@
 import subprocess
 
-# FUNCTION TO INTERACT WITH pactl
+# func to interact with pactl
 def pactl(args: str, timeout: int = 5) -> str:
     proc = subprocess.run(
         ["pactl"] + args.split(),

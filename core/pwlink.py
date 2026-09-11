@@ -1,6 +1,6 @@
 import subprocess
 
-# FUNCTION TO INTERACT WITH pw-link
+# func to interact with pw-link
 def pwlink(args, timeout=5):
     if isinstance(args, str):
         args = args.split()

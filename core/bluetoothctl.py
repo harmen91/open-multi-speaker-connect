@@ -9,12 +9,12 @@ import core.load_env
 def current_devices():
     return core.load_env.OUTPUT_DEVICES
 
-# STRIP COLOR CODES FROM PIPED OUTPUT
+# strip color codes from piped output
 ANSI_ESCAPE_RE = re.compile(r'\x1b\[[0-9;]*m')
 def strip_ansi(line: str) -> str:
     return ANSI_ESCAPE_RE.sub('', line)
 
-# SINGLE CALL TO BLUETOOTHCTL, WAIT FOR OUTPUT, OR TERMINATE AFTER FIXED TIMEOUT
+# single call to bluetoothctl, wait for output, or terminate after a fixed timeout
 def bluetoothctl_run(args, timeout=5):
     try:
         completed_process = subprocess.run(
@@ -29,7 +29,7 @@ def bluetoothctl_run(args, timeout=5):
 
     except subprocess.CalledProcessError as exc:
         if exc.cmd[1] == "pair":
-            print(f"IGNORE THIS ERROR FOR NOW >>> PAIRING ERROR OUTPUT_DEVICE {exc.cmd[2]}")
+            print(f"ignore this error for now >>> pairing error output_device {exc.cmd[2]}")
         elif exc.cmd[1] == "scan":
             print(f"IGNORE THIS ERROR FOR NOW >>> SCAN ON/OFF TOGGLE ISSUE")
         else:
@@ -44,7 +44,7 @@ def bluetoothctl_run(args, timeout=5):
         print(f"Process times out.\n{exc}")
         return exc    
 
-# SELECT DEFAULT BLUETOOTH CONTROLLER
+# select default bluetooth controller
 def bluetoothctl_select_controller(controller):
     script=f"select {controller}\nagent on\ndefault-agent\n pairable on"
     proc = subprocess.run(
@@ -52,7 +52,7 @@ def bluetoothctl_select_controller(controller):
     )
     return proc.stdout + proc.stderr
 
-# BLUETOOTH BACKGROUND SCAN PROCESS AND FILL SCAN_QUEUE FOR DURATION --timeout
+# bluetooth background scan process, fills scan_queue for duration --timeout
 scan_queue = queue.Queue()
 def bluetoothctl_scan_start():
     print("Starting background scan...")
@@ -69,28 +69,28 @@ def bluetoothctl_scan_start():
         for line in scan_process.stdout:
             line = line.rstrip()    
             clean = strip_ansi(line)   
-            print(clean) # >>>>>>>>> DISABLE THIS IN THE FUTURE <<<<<<<<<<<<
+            print(clean) # >>>>>>>>> disable this in the future <<<<<<<<<<<<
             scan_queue.put(clean)
     threading.Thread(target=read_output, daemon=True).start()
 
     return scan_process
 
-# TERMINATE ALL LINGERING BLUETOOTHCTL --timeout PROCESSES // USE TO STOP BACKGROUND SCAN PROCESS
+# terminate any lingering bluetoothctl --timeout processes // use to stop the background scan process
 def bluetoothctl_scan_stop():
     bluetoothctl_run("scan off")
     subprocess.run(["pkill", "-f", "bluetoothctl --timeout"])
     print("Terminated any lingering bluetoothctl background scan processes")
 
-# REMOVE DEVICE
+# remove device
 def bluetoothctl_remove_device(mac, timeout=5):
     bluetoothctl_run(f"remove {mac}", timeout)
 
-# REMOVE ALL TRUSTED, PAIRED and CONNECTED BLUETOOTH DEVICES
+# remove all trusted, paired and connected bluetooth devices
 def bluetoothctl_remove_devices():
     for mac in current_devices():
         bluetoothctl_run((f"remove {mac}"))
 
-# CHECK IF SINGLE DEVICE IS TRUSTED
+# check if a single device is trusted
 def is_trusted(mac, verbose = False):
     timeout = 10
     trusted = mac in bluetoothctl_run("devices Trusted", timeout).stdout
@@ -103,7 +103,7 @@ def is_trusted(mac, verbose = False):
         return False
     return True
 
-# CHECK IF SINGLE DEVICE IS PAIRED
+# check if a single device is paired
 def is_paired(mac, verbose = False):
     timeout = 10
     paired = mac in bluetoothctl_run("devices Paired", timeout).stdout
@@ -116,7 +116,7 @@ def is_paired(mac, verbose = False):
         return False
     return True
 
-# CHECK IF SINGLE DEVICE IS CONNECTED
+# check if a single device is connected
 def is_connected(mac, verbose = False):
     timeout = 10
     connected = mac in bluetoothctl_run("devices Connected", timeout).stdout
@@ -129,7 +129,7 @@ def is_connected(mac, verbose = False):
         return False
     return True
 
-# CHECK IF ALL DEVICES ARE TRUSTED
+# check if all devices are trusted
 def all_trusted():
     timeout = 10
     trusted = bluetoothctl_run("devices Trusted", timeout).stdout    
@@ -140,7 +140,7 @@ def all_trusted():
             return False
     return True
 
-# CHECK IF ALL DEVICES ARE CONNECTED, RETURN LIST OF CONNECTED DEVICES FROM BLUETOOTHCTL DEVICES CONNECTED OUTPUT
+# check if all devices are connected, return list of connected devices from bluetoothctl devices connected output
 def all_connected(verbose = True) -> (bool, list):
     timeout = 10
     connected = bluetoothctl_run("devices Connected", timeout).stdout
@@ -155,15 +155,15 @@ def all_connected(verbose = True) -> (bool, list):
             return False, list_connected
     return True, list_connected
 
-# TRUST INDIVIDUAL DEVICE
+# trust an individual device
 def bluetoothctl_trust(mac):
     bluetoothctl_run(f"trust {mac}", timeout=10)
 
-# PAIR INDIVIDUAL DEVICE
+# pair an individual device
 def bluetoothctl_pair(mac):
     bluetoothctl_run(f"pair {mac}", timeout=10)
 
-# TRUST AND PAIR ALL DEVICES IN OUTPUT_DEVICES 
+# trust and pair all devices in output_devices 
 def trust_and_pair_devices(devices):
     local_scan_lines = []
 
@@ -177,11 +177,11 @@ def trust_and_pair_devices(devices):
         trusted = is_trusted(mac)
         paired = is_paired(mac)
 
-        # IF MAC NOT PAIRED > CHECK IF TRUSTED
+        # if mac not paired > check if trusted
         max_pairing_attempts = 0
         while not paired and max_pairing_attempts < 10:
             
-            # IF MAC NOT TRUSTED > WAIT FOR MAC TO APPEAR IN local_scan_lines > TRUST
+            # if mac not trusted > wait for mac to appear in local_scan_lines > trust
             max_trusting_attempts = 0
             while not trusted and max_trusting_attempts < 10:
                 
@@ -189,13 +189,13 @@ def trust_and_pair_devices(devices):
                 restart_after = 10
                 while not any(mac in line for line in local_scan_lines):
                     try:
-                        line = scan_queue.get(timeout=1) #line becomes latest queue.get
+                        line = scan_queue.get(timeout=1) # line becomes latest queue.get
                         local_scan_lines.append(line)
-                        waited = 0 # Device activity detected
+                        waited = 0 # device activity detected
 
                     except queue.Empty:
                         waited += 1
-                        print(f"Waiting for {mac} to appear") #waiting for new entry in queue to appear
+                        print(f"Waiting for {mac} to appear") # waiting for new entry in queue to appear
 
                         if waited >= restart_after:
                             print("Restarting Bluetooth scan...")
@@ -209,43 +209,43 @@ def trust_and_pair_devices(devices):
 
                             waited = 0
 
-                # BROKE OUT OF INNER WHILE LOOP FOR MAC APPEAR IN local_scan_lines > ATTEMPTING TO TRUST
+                # broke out of inner while loop, mac appeared in local_scan_lines > attempting to trust
                 max_trusting_attempts += 1
                 print(f"Attempting to trust with {mac}. Trusting attempt: {max_trusting_attempts}")
                 bluetoothctl_trust(mac)
                 time.sleep(1)
                 trusted  = is_trusted(mac)
             
-            # BROKE OUT OF NOT TRUSTED WHILE LOOP > ATTEMPTING TO PAIR
+            # broke out of the not-trusted while loop > attempting to pair
             max_pairing_attempts += 1
             print(f"Attempting to pair with {mac}. Pairing attempt: {max_pairing_attempts}")
             bluetoothctl_pair(mac)
             paired = is_paired(mac)
-            # FIRST TIME TRYING TO CONNECT RIGHT AFTER PAIRING SUCCESFULLY - IMPROVED CONNECTIVITY ISSUES WITH BOSE SOUNDLINK MINI 
+            # trying to connect right after pairing seems to improve connectivity with bose soundlink mini
             bluetoothctl_connect(mac)
             
 
-# CONNECT INDIVIDUAL DEVICE
+# connect an individual device
 def bluetoothctl_connect(mac):
     bluetoothctl_run(f"connect {mac}", timeout=10)
 
-# CONNECT ALL DEVICES
+# connect all devices
 def connect_devices(devices):
     trusted = all_trusted()
     connected, _ = all_connected()
 
-    # CHECK IF ALL CONNECTED
+    # check if all connected
     if not connected:
         print(f"Not all devices are connected, checking if Trusted.")
-        # CHECK IF ALL TRUSTED
+        # check if all trusted
         if trusted:
             print(f"All devices are trusted, attempting to connect all devices.")
 
-            # ALL TRUSTED AND READY TO CONNECT EACH DEVICE
+            # all trusted and ready to connect each device
             for mac in current_devices():
                 trusted = is_trusted(mac)
                 connected = is_connected(mac)
-                # ATTEMPT TO CONNECT TO DEVICE FOR MAX CONNECTING_ATTEMPTS
+                # attempt to connect to device up to max connecting attempts
                 connecting_attempts = 0
                 while trusted and not connected and connecting_attempts < 10:
                     time.sleep(1)
@@ -255,10 +255,7 @@ def connect_devices(devices):
                     connected = is_connected(mac)
 
 
-#########################################
-######### FINAL FUNCTION CALL ###########
-#########################################
-
+# final function call 
 def bluetooth_connect_speakers(CONTROLLER_OUTPUT, devices=None):
 
     if devices is None:
@@ -271,7 +268,7 @@ def bluetooth_connect_speakers(CONTROLLER_OUTPUT, devices=None):
         time.sleep(3)
 
         print(f"Setting default controller to: {CONTROLLER_OUTPUT}...")
-        bluetoothctl_select_controller(CONTROLLER_OUTPUT) ## improve test against bluetoothctl list to check if agent is already [default]
+        bluetoothctl_select_controller(CONTROLLER_OUTPUT) ## todo: check against bluetoothctl list to see if agent is already [default]
         time.sleep(1)
 
         print("Starting bluetoothctl scan background service...")
@@ -286,8 +283,4 @@ def bluetooth_connect_speakers(CONTROLLER_OUTPUT, devices=None):
         print("Attempting to connect to all paired devices..")
         connect_devices(devices)
 
-        # print("#####################  TERMINATE ALL LINGERING BACKGROUND SCAN SERVICES #######################")    
-        # bluetoothctl_scan_stop()
-
     return all_connected()
-

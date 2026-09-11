@@ -2,6 +2,8 @@ from interfaces.tui.engine import log, MenuItem
 from interfaces.tui.device_menu import DeviceSelectionMenu
 import threading
  
+# wraps speaker.set_latency so it can be used as a menu action:
+# runs the latency change, then persists state on a background thread
 def _wrap_set_latency(speaker, audio_mgr):
     def action(latency_ms: int):
         result = speaker.set_latency(latency_ms)
@@ -10,6 +12,7 @@ def _wrap_set_latency(speaker, audio_mgr):
         return result
     return action
 
+# wraps speaker.update_channel as a menu action, persisting state afterwards
 def _wrap_update_channel(speaker, audio_mgr):
     def action(channel_str: str):
         result = speaker.update_channel(channel_str)
@@ -18,11 +21,13 @@ def _wrap_update_channel(speaker, audio_mgr):
         return result
     return action
  
+# builds a text volume bar like "[Name] Level: [====....] 40%" for the log pane
 def _volume_bar(name: str, level: int, width: int = 20) -> str:
     filled = int((level / 100) * width)
     bar = "=" * filled + "." * (width - filled)
     return f"[{name}] Level: [{bar}] {level}%"
  
+# wraps speaker.set_volume, clamping the level and logging a volume bar
 def _wrap_speaker_volume(speaker):
     def action(level: int):
         level = max(0, min(100, level))
@@ -31,6 +36,7 @@ def _wrap_speaker_volume(speaker):
         return result
     return action
  
+# wraps speaker.volume_up, logging the resulting volume level
 def _wrap_volume_up(speaker):
     def action():
         result = speaker.volume_up()
@@ -38,6 +44,7 @@ def _wrap_volume_up(speaker):
         return result
     return action
  
+# wraps speaker.volume_down, logging the resulting volume level
 def _wrap_volume_down(speaker):
     def action():
         result = speaker.volume_down()
@@ -45,6 +52,7 @@ def _wrap_volume_down(speaker):
         return result
     return action
  
+# wraps audio_mgr.set_volume (combined sink), clamping and logging a master bar
 def _wrap_master_volume(audio_mgr):
     def action(level: int):
         level = max(0, min(100, level))
@@ -53,6 +61,7 @@ def _wrap_master_volume(audio_mgr):
         return result
     return action
 
+# wraps audio_mgr.volume_up, logging the tracked master volume
 def _wrap_master_volume_up(audio_mgr):
     def action():
         result = audio_mgr.volume_up()
@@ -60,15 +69,17 @@ def _wrap_master_volume_up(audio_mgr):
         return result
     return action
  
+# wraps audio_mgr.volume_down, logging the tracked master volume
 def _wrap_master_volume_down(audio_mgr):
     def action():
         result = audio_mgr.volume_down()
         log(_volume_bar("Master", audio_mgr.volume))
         return result
     return action
- 
-from interfaces.tui.device_menu import DeviceSelectionMenu
 
+# builds the menu config dict consumed by the tui engine:
+# per-speaker controls, audio setup entries, master volume actions
+# and the system reset submenu
 def build_app_config(
     audio_mgr,
     device_selection_menu,
@@ -80,6 +91,7 @@ def build_app_config(
     delete_selected_devices_state_file_fn,
 ):
     speaker_controls = {}
+    # one control block per restored speaker, wrapping their methods as menu actions
     for spk in audio_mgr.speakers:
         speaker_controls[f"Speaker: {spk.name}"] = {
             "Set Latency (ms)": _wrap_set_latency(spk, audio_mgr),
@@ -91,6 +103,7 @@ def build_app_config(
             "Mute Off": spk.mute_off,
         }
  
+    # full app menu: the empty fallback message shows when no speakers are loaded yet
     return {
         "Audio Setup": {
             "Scan & Select Bluetooth Devices": device_selection_menu,

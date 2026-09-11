@@ -108,6 +108,6 @@ class AudioCalibrator:
 
         return results
 
-#TODO
+# TODO
 # Have an audio calibrator script run over a longer period of time, and take the std dev median (excluding extreme values) to get a more accurate initial calibration
 # Ask user to confirm setting the calculated latency instead of applying immediatly
